@@ -143,6 +143,14 @@ document.addEventListener('submit',e=>{
     if(type==='details'){
       const key=form.dataset.accountKey,value=accountValue(key,new FormData(form).get('value'));
       if(value===accountProfile()[key]){closeModal();toast('No changes to save');return;}
+      if(key==='fullName'&&window.BCB_USER&&typeof sb!=='undefined'&&sb){
+        submit.disabled=true;
+        sb.rpc('update_my_name',{new_name:value}).then(({error})=>{
+          if(error){submit.disabled=false;return accountFormError(form,authMessage(error));}
+          BCB_USER.name=value;saveAccount({[key]:value},'Profile updated','Full name changed');
+        }).catch(err=>{submit.disabled=false;accountFormError(form,authMessage(err));});
+        return;
+      }
       saveAccount({[key]:value},'Profile updated',accountFields[key].label+' changed');
     } else if(type==='photo'){
       saveAccount({photo:accountCroppedPhoto(),photoIsReference:false},'Profile photo updated','Your profile');accountPhotoDraft=null;
