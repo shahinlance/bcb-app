@@ -26,3 +26,8 @@ body.auth-active #app{display:none}
 .account-row-note{color:var(--muted);font-size:12px}
 .account-signout{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:14px 0 30px;padding:14px;border:1px solid #f0d9d5;border-radius:14px;background:#fff;color:var(--red);font-weight:600}
 .user-venues .check-row:has(input:checked),.user-active:has(input:checked){color:var(--ink);font-weight:600}
+/* Grounds team */
+.team-initials{display:inline-grid;place-items:center;background:var(--green-soft);color:var(--green);font-weight:700;font-size:28px;letter-spacing:.5px}
+.team-avatar-stack .team-initials{font-size:13px}
+.team-admin-actions{display:grid;gap:10px;margin:18px 0 28px}
+.danger-text{color:var(--red)!important}

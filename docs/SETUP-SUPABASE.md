@@ -33,6 +33,11 @@ Invite and password-reset emails open this address.
 
 **Email limit:** until custom SMTP is set up, Supabase's built-in mailer only sends to members of your Supabase team, and at most 2 emails per hour. Before inviting other people, set up custom SMTP: Authentication → **Emails** → **SMTP Settings**. A Hostinger email account works. Its SMTP host is usually `smtp.hostinger.com`, port 465.
 
+## 6. Shared records and photos (phase 3)
+SQL Editor → New query → paste all of `supabase/003_shared_records.sql` → **Run**.
+This creates the shared table for every app record and a **photos** storage bucket.
+The app starts empty: add real staff, inventory, issues and matches from the app.
+
 ## What each role can do
 
 | Role | Sees | Can change |
@@ -43,7 +48,8 @@ Invite and password-reset emails open this address.
 
 These rules are enforced inside the database. Hiding a button is not what protects anything.
 
-## Current limits (phase 1)
-- Sign-in, roles and user management are real, and shared across all devices.
-- Operational records are **still saved in each browser**: issues, inventory, matches, pitches and photos. Moving them to the shared database is phase 3. Until then, Admin venue limits are recorded but not yet applied to those records.
+## Current limits
 - New people are invited from the Supabase dashboard. An in-app **Invite** button is phase 2.
+- Other people's changes appear when you return to the app or within a minute (not instantly).
+- Photos are stored under random, unguessable web addresses. Anyone given a photo's exact link can open it; the app itself requires sign-in.
+- Personal settings (profile photo, phone, notification "read" state) stay in each browser.

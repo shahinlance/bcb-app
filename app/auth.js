@@ -105,8 +105,9 @@ async function loadUserAndStart() {
     }
     window.BCB_USER = { id: uid, email: p.email, name: p.full_name || '', role: p.role, appRole: ROLE_LABEL[p.role], venues };
     state.role = BCB_USER.appRole;
+    document.querySelector('#auth .auth-sub').textContent = 'Loading grounds data…';
+    await authStart();
     authHide();
-    authStart();
   } catch (err) { authScreen('error', { message: authMessage(err) }); }
 }
 

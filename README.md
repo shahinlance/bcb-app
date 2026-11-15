@@ -4,7 +4,7 @@ Grounds operations app for the Bangladesh Cricket Board: venues, inventory, grou
 
 ## Status
 
-Plain HTML, CSS and JavaScript, no build step. **Sign-in and roles run on Supabase** (phase 1, on `dev`); operational records are still saved per browser until phase 3. Setup steps: [docs/SETUP-SUPABASE.md](docs/SETUP-SUPABASE.md).
+Plain HTML, CSS and JavaScript, no build step. **Sign-in, roles and all records run on Supabase**; photos go to Supabase Storage. Setup steps: [docs/SETUP-SUPABASE.md](docs/SETUP-SUPABASE.md).
 
 ## Roadmap
 
@@ -13,8 +13,8 @@ Plain HTML, CSS and JavaScript, no build step. **Sign-in and roles run on Supaba
    - **Super Admin** — full access; invites users, assigns roles and venues.
    - **Admin** — edits records only for their assigned venue(s).
 2. ✅ **Users & Access** section inside the app (Super Admin only), with activity log. *Next: in-app Invite button (Edge Function).*
-3. **Shared database and photo storage** (Supabase); move each module off localStorage.
-4. **Real data** — venues, staff, equipment, replacing demo records and stock photos.
+3. ✅ **Shared database and photo storage** — `app/sync.js` loads all records after sign-in and saves only what changed; the database enforces venue rules.
+4. **Real data** — started empty; Super Admin builds the roster (Grounds Team → Add staff member), Admins add inventory, issues, pitch reports.
 5. **Launch** — bcbgrounds.com (Hostinger, deployed from `main`; `.htaccess` serves `app/` at the root and keeps other folders private).
 
 ## Branches
