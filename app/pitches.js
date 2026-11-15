@@ -1,0 +1,54 @@
+/* Pitch profiles and report history are stored separately from legacy venue summaries. */
+function initialisePitchCatalog(){
+  if(Array.isArray(db.pitchCatalog))return;
+  db.pitchCatalog=[];
+  for(const [ground,old] of Object.entries(db.pitches||{})){
+    const id='legacy-pitch-'+ground;
+    db.pitchCatalog.push({id,ground:Number(ground),name:old.pitch||'Pitch',operation:'Inactive',description:'Imported pitch record. Confirm operation status.',photos:[],photoDate:'',reports:[{...old,id:id+'-report',observed:old.updated||'',photoDate:'',photos:normalisePhotos(old)}]});
+  }
+}
+function venuePitches(){return state.mode==='Empty'?[]:(db.pitchCatalog||[]).filter(p=>p.ground===state.ground);}
+function selectedPitch(){return (db.pitchCatalog||[]).find(p=>p.id===state.pitchId&&p.ground===state.ground);}
+function pitchDate(value){if(!value)return 'Not recorded';const d=new Date(value.length===10?value+'T00:00:00+06:00':value);return Number.isFinite(d.getTime())?d.toLocaleString('en-GB',{timeZone:'Asia/Dhaka',day:'numeric',month:'short',year:'numeric'}):'Not recorded';}
+function pitchProfileCard(p){const image=normalisePhotos(p)[0];return `<button class="pitch-profile-card" data-open-pitch="${esc(p.id)}">${image?`<img src="${esc(image.src)}" alt="${esc(p.name)}${image.demo?' · Demo reference':''}" loading="lazy">`:`<div class="pitch-photo-placeholder">${icon('pitch')}<span>No pitch photos yet</span></div>`}<div class="pitch-card-copy"><div class="row"><h2>${esc(p.name)}</h2>${status(p.operation)}</div><p>${esc(p.description||'Pitch details not added yet.')}</p><small>Photos taken: ${pitchDate(p.photoDate)}</small><small>${normalisePhotos(p).length} photos · ${(p.reports||[]).length} reports</small>${image?.demo?'<small>Demo reference · not an inspection</small>':''}</div></button>`;}
+function pitchDirectory(){const list=venuePitches(),active=list.filter(p=>p.operation==='Active');return header('Pitches',G(state.ground).short,'Grounds')+groundTabs('pitch')+`<div class="row"><h2>All pitches <span class="sub">${list.length}</span></h2>${canEdit()?'<button class="button small" data-new-pitch>Add pitch</button>':''}</div>`+(list.length?list.map(pitchProfileCard).join(''):empty('No pitches added yet','Add each pitch with its name, details and photographs.'))+`<section aria-label="Pitches in operation">${section('Pitches in operation')}<p class="sub">Only pitches marked Active appear here.</p>${active.length?active.map(pitchProfileCard).join(''):empty('No active pitches','Mark a pitch Active in its profile when it is in operation.')}</section>`;}
+function pitchDetailsPage(){const p=selectedPitch();if(!p)return header('Pitch details')+empty('Pitch unavailable','Open a pitch from this venue’s directory.');const reports=[...(p.reports||[])].sort((a,b)=>(b.observed||'').localeCompare(a.observed||''));return header(p.name,G(p.ground).short,'Pitches')+status(p.operation)+photoGallery('pitch-profile',p.id,p.name)+`<p class="sub">Photos taken: ${pitchDate(p.photoDate)}</p><div class="card"><h3>Pitch details</h3><p>${esc(p.description||'Not provided')}</p><p>Location: ${esc(p.location||'Not provided')}</p><p>Surface: ${esc(p.surface||'Not provided')}</p></div>${canEdit()?'<button class="button secondary" data-edit-pitch>Edit pitch / photos</button>':''}<div class="row"><h2>Pitch reports</h2>${canEdit()?'<button class="button small" data-new-pitch-report>Add Report</button>':''}</div>${reports.length?reports.map(r=>pitchReportCard(p,r)).join(''):empty('No reports yet','Add the first dated inspection report for this pitch.')}`;}
+function pitchReportCard(p,r){return `<article class="card pitch-report"><div class="row"><h3>${pitchDate(r.observed)}</h3>${status(r.status||'Not recorded')}</div><p>${esc(r.note||'No observations recorded.')}</p><p class="sub">${normalisePhotos(r).length} photos · Taken: ${pitchDate(r.photoDate)}</p><div class="row"><button class="textbtn" data-open-pitch-report="${esc(r.id)}">View report${icon('chevron')}</button>${canEdit()?`<button class="textbtn" data-edit-pitch-report="${esc(r.id)}">Update report</button>`:''}</div></article>`;}
+function selectedPitchReport(){return selectedPitch()?.reports?.find(r=>r.id===state.pitchReportId);}
+function pitchReportPage(){const p=selectedPitch(),r=selectedPitchReport();if(!p||!r)return header('Pitch report')+empty('Report unavailable','Open a report from this pitch.');return header('Pitch report',esc(p.name)+' · '+pitchDate(r.observed),'Pitch details')+status(r.status)+photoGallery('pitch-report',r.id,'Pitch report photos')+`<p class="sub">Photos taken: ${pitchDate(r.photoDate)}</p><dl class="bcb-bio">${[['Inspection date',pitchDate(r.observed)],['Surface',r.surface],['Grass coverage',r.grass],['Moisture',r.moisture],['Next inspection',pitchDate(r.next)]].map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(v||'Not provided')}</dd></div>`).join('')}</dl>${section('Observations')}<div class="card"><p>${esc(r.note||'Not provided')}</p></div>${canEdit()?`<button class="button secondary" data-edit-pitch-report="${esc(r.id)}">Update report / photos</button>`:''}<p class="sub">Last saved: ${pitchDate(r.updated)}</p>`;}
+function pitchTodayInput(){const t=calendarToday();return calendarDate(t.year,t.month,t.day);}
+function pitchEditor(){if(!canEdit())return header('Pitch')+permission();const p=state.editPitch?selectedPitch():null;return header(p?'Edit pitch':'Add pitch',G(state.ground).short,'Pitches')+form('pitch-profile',field('Pitch name','name','text',p?.name||'')+select('Operation status','operation',['Inactive','Active','Under maintenance'],p?.operation||'Inactive')+field('Location / square','location','text',p?.location||'',false)+field('Surface / pitch type','surface','text',p?.surface||'',false)+textarea('Pitch details','description',p?.description||'',false)+photoUpload('photo','Pitch profile photos',normalisePhotos(p),demoImage('assets/pitch.jpg','Demo reference · not this pitch'))+field('Photos taken date','photoDate','date',p?.photoDate||'',false),'Save pitch');}
+function pitchReportEditor(){const p=selectedPitch();if(!canEdit())return header('Pitch report')+permission();if(!p)return header('Pitch report')+empty('Choose a pitch first','Open a pitch to add its report.');const r=state.editPitchReport?selectedPitchReport():null;return header(r?'Update report':'Add Report',p.name,'Pitch details')+form('pitch-report',field('Inspection date','observed','date',r?.observed?.slice(0,10)||pitchTodayInput())+select('Condition','status',['Needs preparation','Ready for inspection','Ready','Not ready'],r?.status)+field('Surface condition','surface','text',r?.surface||'',false)+field('Grass coverage','grass','text',r?.grass||'',false)+field('Moisture reading and unit','moisture','text',r?.moisture||'',false)+field('Next inspection','next','date',r?.next?.slice(0,10)||'',false)+textarea('Observations','note',r?.note||'')+photoUpload('photo','Report photos',normalisePhotos(r),demoImage('assets/pitch.jpg','Demo reference · not inspection evidence'))+field('Photos taken date','photoDate','date',r?.photoDate||'',false),r?'Save report changes':'Add Report');}
+function savePitchRecord(type,v,images){
+  const now=new Date().toISOString();
+  if(images.length&&!v.photoDate)throw Error('Enter the photos taken date.');
+  if(v.photoDate&&v.photoDate>pitchTodayInput())throw Error('Photos taken date cannot be in the future.');
+  const photos=images.map(image=>({...image,takenDate:v.photoDate||'',uploadedAt:image.uploadedAt||now}));
+  if(type==='pitch-profile'){
+    const name=String(v.name||'').trim();if(!name)throw Error('Enter a pitch name.');
+    if(!['Inactive','Active','Under maintenance'].includes(v.operation))throw Error('Choose an operation status.');
+    const current=state.editPitch?selectedPitch():null;if(state.editPitch&&!current)throw Error('This pitch no longer exists.');
+    if(venuePitches().some(p=>p.id!==current?.id&&p.name.toLowerCase()===name.toLowerCase()))throw Error('This venue already has a pitch with that name.');
+    const values={name,ground:state.ground,operation:v.operation,location:v.location,description:v.description,surface:v.surface,photoDate:v.photoDate,updated:now,...photoValues(photos)};
+    if(current)Object.assign(current,values);else{const record={...values,id:crypto.randomUUID(),reports:[]};db.pitchCatalog.push(record);state.pitchId=record.id;}
+  }else{
+    const p=selectedPitch();if(!p)throw Error('Choose a valid pitch.');
+    if(!v.observed||v.observed>pitchTodayInput())throw Error('Enter an inspection date no later than today.');
+    if(!String(v.note||'').trim())throw Error('Add the inspection observations.');
+    if(v.next&&v.next<v.observed)throw Error('Next inspection must be on or after the inspection date.');
+    const old=state.editPitchReport?selectedPitchReport():null;if(state.editPitchReport&&!old)throw Error('This report no longer exists.');
+    const values={observed:v.observed,status:v.status,surface:v.surface,grass:v.grass,moisture:v.moisture,next:v.next,note:v.note,photoDate:v.photoDate,updated:now,...photoValues(photos)};
+    if(old)Object.assign(old,values);else p.reports.push({...values,id:crypto.randomUUID(),createdAt:now});
+    const latest=[...p.reports].sort((a,b)=>(b.observed||'').localeCompare(a.observed||''))[0];
+    if(latest)db.pitches[state.ground]={...latest,pitch:p.name};
+  }
+}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.openPitch){go('pitch-details',{pitchId:b.dataset.openPitch,scope:true});return;}
+  if(b.dataset.newPitch!==undefined){go('pitch-edit',{editPitch:false,scope:true});return;}
+  if(b.dataset.editPitch!==undefined){go('pitch-edit',{editPitch:true,scope:true});return;}
+  if(b.dataset.newPitchReport!==undefined){go('pitch-report-edit',{editPitchReport:false,pitchReportId:null,scope:true});return;}
+  if(b.dataset.editPitchReport){go('pitch-report-edit',{editPitchReport:true,pitchReportId:b.dataset.editPitchReport,scope:true});return;}
+  if(b.dataset.openPitchReport)go('pitch-report',{pitchReportId:b.dataset.openPitchReport,scope:true});
+});
+document.addEventListener('submit',async e=>{const f=e.target,type=f.dataset.form;if(!['pitch-profile','pitch-report'].includes(type))return;e.preventDefault();if(!canEdit())return error(f,'Viewing access only.');if(f._photoPending)return error(f,'Please wait for photos to finish preparing.');const before=structuredClone(db),previousPitchId=state.pitchId,button=f.querySelector('[type=submit]');button.disabled=true;try{const v=Object.fromEntries(new FormData(f).entries()),images=await collectPhotos(f,'photo');savePitchRecord(type,v,images);log(type==='pitch-profile'?'Pitch profile saved':'Pitch report saved',selectedPitch().name);go('pitch-details',{scope:true});toast('Saved');}catch(err){db=before;state.pitchId=previousPitchId;error(f,err.message);}finally{if(button.isConnected)button.disabled=false;}});

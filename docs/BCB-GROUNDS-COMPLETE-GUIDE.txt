@@ -1,0 +1,533 @@
+BCB GROUNDS - APPLICATION GUIDE AND PROJECT HANDOVER
+Prepared: 15 November 2026 (Bangladesh time)
+Format: UTF-8 plain text; readable in Windows Notepad.
+
+CONTENTS
+1. What this app is
+2. ZIP contents and quick start
+3. Hosting somewhere else
+4. How the app works
+5. Daily operating instructions
+6. Browser data, backups and moving records
+7. Technical file map
+8. Existing site, access and ownership
+9. Project history and decisions
+10. Known limitations and troubleshooting
+11. How to continue development
+12. Verification and scope of this package
+
+======================================================================
+1. WHAT THIS APP IS
+======================================================================
+
+BCB Grounds is a web application prototype for grounds operations in the
+Bangladesh Cricket Board context. It brings venues, equipment, supplies,
+staff directories, issues, pitch reports and fixtures into one interface.
+Its purpose is to help senior users see what needs attention and inspect
+ground details without working through complicated screens.
+
+The current interface is a mobile-style Super Admin app, also viewable
+on a desktop. It is made with HTML, CSS and vanilla JavaScript. It is not
+a React, Angular, Flutter or WordPress application. It is not a native
+Android/iOS app. An app manifest and icons are included, but installation
+and offline caching should not be assumed to be fully implemented.
+
+This is a browser-local prototype, not a shared operational system.
+Records and edits stay in the browser that made them. There is no shared
+database, production staff login, server-side permission enforcement,
+or automatic synchronization between users and devices.
+
+Demo names, portraits, equipment records, faults and reference photos
+must not be mistaken for verified staff identities or inspection evidence.
+An empty category means details have not been supplied, not that a real
+BCB position or venue necessarily has no staff or equipment.
+
+======================================================================
+2. ZIP CONTENTS AND QUICK START
+======================================================================
+
+START-HERE.txt
+  Short instructions for choosing the right folder.
+
+BCB-GROUNDS-COMPLETE-GUIDE.txt
+  This guide.
+
+website/
+  Ready-to-upload website. index.html is directly inside this folder.
+  Includes all app JavaScript, CSS, manifest, icons, logo and images.
+
+source-project/
+  Editable project, including app/, dist/, scripts/, package.json,
+  README.md, this guide, previous handoffs, project-status notes,
+  source manifest, recovered conversation history, and the existing
+  .openai/hosting.json Sites linkage. The .git folder is excluded.
+
+PACKAGE-CONTENTS.csv
+  Relative paths, sizes and SHA-256 checksums for the packaged files.
+
+For a quick look, extract the ZIP and open website/index.html. A local
+HTTP preview is recommended because browsers treat file URLs differently.
+
+For the maintained preview, install/use Node.js, open a terminal in
+source-project and run:
+
+  npm start
+
+Then open:
+  http://127.0.0.1:4173
+
+Keep that terminal running. Stop it with Ctrl+C when finished. There are
+no external package dependencies to install for these commands. Node.js
+24.19.0 was available during the 13 November environment check.
+
+======================================================================
+3. HOSTING SOMEWHERE ELSE
+======================================================================
+
+The current app can be served by a host that supports static HTML, CSS,
+JavaScript and image files. No Node.js server is needed on the production
+host for this version, and there is no database setup or API key required
+to render its existing features.
+
+Manual upload:
+1. Extract the ZIP on your computer.
+2. Open website/.
+3. Upload its CONTENTS to your hosting web root. index.html should be
+   at the root of the hosted app, next to app.js and the assets/ folder.
+4. Preserve file names, capitalization and folder structure.
+5. Open the new URL and test navigation, images and record saving.
+6. Reload after a small test edit to confirm browser persistence there.
+
+Repository/static build setup, if your host asks for one:
+  Project root: source-project
+  Build command: npm run build
+  Publish/output folder: dist
+  Runtime for the build command: Node.js
+
+For hosts that do not need a build, deploy website/ directly instead.
+Routes use URL fragments such as #/inventory. Ordinary hash navigation
+does not need a server-side single-page-app rewrite rule.
+
+Use HTTPS for a hosted deployment. A host may supply HTTPS automatically;
+follow that host's setup instructions. No domain or hosting subscription
+is included in this ZIP.
+
+The package is self-contained for its bundled assets. The HTML social
+preview image still points to the existing ChatGPT Site logo URL. Update
+the og:image value in app/index.html to your new hosted logo URL if you
+want social previews to use the new host, then prepare a fresh build.
+
+Upload only website/ contents for a public deployment. source-project/
+and history/ are reference material and are not needed to run the site.
+The project archive includes conversation text, historical links and
+project identifiers; keep that material with your private project files.
+
+Moving hosting does not migrate browser records. A new domain starts
+with its own browser storage. Hosting elsewhere also does not add staff
+authentication, cloud storage or synchronized data automatically.
+
+======================================================================
+4. HOW THE APP WORKS
+======================================================================
+
+index.html loads the CSS and ten JavaScript modules in order. The app
+renders into the page dynamically. Buttons change screens and selected
+records. Many inputs open a form or bottom sheet with a Save action.
+
+The main navigation is:
+  Home / Inventory / Grounds Team / Issues / Matches
+
+Venue details have their own sections:
+  Overview / Inventory / Pitch / Matches
+
+Selecting inventory or matches INSIDE a venue should keep that venue's
+context. National Inventory and Matches show records across venues.
+
+The current client always renders the Super Admin demo role. The role
+label is not proof of an authenticated user's permissions. Historical
+Admin and Visitor preview code is not a production account system.
+Workers have no implemented separate account or worker interface.
+
+The app starts from bundled sample records and applies browser-saved
+edits when present. The current localStorage key is:
+  bcb-grounds-super-admin-v1
+
+Dates in the inventory/calendar logic use Bangladesh time, Asia/Dhaka.
+Some sample labels, values, required-by dates and status-bar content are
+still demonstration values. Check form dates before saving a real record.
+
+======================================================================
+5. DAILY OPERATING INSTRUCTIONS
+======================================================================
+
+HOME
+Open Home for attention indicators, venue counts, issues, approval
+shortcuts and venue cards. Use the Inventory and Grounds Team photo
+shortcuts to open those modules. Open a venue card for its details.
+Filters such as Needs attention and On track narrow the displayed list.
+The greeting uses the saved profile name; the default is Fahim Ahmed.
+
+VENUES
+There are 22 venue entries, displayed in this priority order:
+  01 SBNCS, Mirpur                     BCB ground
+  02 BSSFLMRCS, Chattogram              BCB ground
+  03 SICS, Sylhet                      BCB ground
+  04 SRGCS, Fatullah                   BCB ground
+  05 DCS, Khulna                      BCB ground
+  06 DCS, Rajshahi                    BCB ground
+  07 SCS, Bogura                      BCB ground
+  08 KJDCS, Barishal                  BCB ground
+  09 BKSP- 3 & 4                      Rented venue
+  10 NCG, Purbachal                   Rented venue
+  11 Cox's Bazar Cricket Stadium      Rented venue
+  12 BT Ground, Teguria               Rented venue
+  13 City Club                       Rented venue
+  14 DUG                             Rented venue
+  15 JHG                             Rented venue
+  16 Fens Cricket Academy             Rented venue
+  17 Cricketers Academy               Rented venue
+  18 PKSP- 1 & 2                      Rented venue
+  19 Narayangonj Dristict Stadium      Rented venue
+  20 Rangpur Cricket Garden           Rented venue
+  21 Ulab                            Rented venue
+  22 Daffodils University              Rented venue
+
+Spellings follow the supplied project list. Display priority and record
+IDs are different. Developers must preserve IDs when reordering venues
+so linked assets, issues and fixtures remain attached correctly.
+
+Overview shows issues, a next-match area, pitch information, requests
+and a venue-filtered Grounds Team section. Missing reports show an
+honest empty state. Reference imagery is not a current ground inspection.
+
+INVENTORY
+Open Inventory to see item types such as rollers, mowers, covers, water
+pumps, hydraulic oil, fertilisers and grass seed. Open a group to inspect
+individual records. Use search and condition/ground filters where shown.
+
+To add an item, choose Add inventory item and enter its name, unique
+Inventory ID, Inventory of (NSC or BCB), date added, ground, category,
+opening quantity, unit, minimum stock and optional photos. Date added
+defaults to the Bangladesh date and can be changed. The ID must be unique.
+Adding from a venue locks the item to that selected venue.
+
+Asset details show condition and stock information. The Responsible
+Admin field was removed in the later update. Minimum stock remains for
+consumables. Stock movements include receipt, issue/use, adjustment and
+transfer where available. A transfer deducts stock from the sender; the
+receiver's stock changes when receipt is confirmed. Check units carefully.
+
+Inventory also has Requests and Transfers sections. Requests can be
+submitted, approved, returned for changes, rejected and received. Confirmed
+receipt changes inventory; approval alone does not add stock. Partial
+receipts are supported by the logic. The prototype prevents approval of
+its own hardcoded Fahim requests by the same demo approver. Because real
+multi-user approval is not implemented, do not use this as a live approval
+authority or assume every demo request can complete an end-to-end flow.
+
+GROUNDS TEAM
+Open Grounds Team, select a designation, then View profile. Search by
+designation/name and use ground filtering where shown. Designations are:
+  Head of Turf Management
+  Curators
+  Deputy Curator
+  Assistant Curator
+  Head Groundsman
+  Groundsman
+
+Three demo identities are retained: Rafiqul Islam (Head of Turf Management),
+Arif Hossain and Mahmud Hasan (Curators). Portraits are reference images.
+Missing biographical details show Not provided; they were not invented.
+Employee profiles have name, home district, division, country, joining
+date, job status, experience, mobile, email and ground coverage. Empty
+designation cards show staffing expectations on venue pages. There is
+no complete staff administration/editor workflow in the current UI;
+the directory records currently come from team.js.
+
+ISSUES
+Open Issues to search/filter by urgency, ground, category and status.
+Open an issue to inspect the affected asset/location, faulty part,
+symptoms, operational impact, diagnosis, repair requirements, parts and
+photos. Report issue creates a local record. Complete the required fault,
+impact, location and repair fields. Linked assets must belong to the
+selected ground. Required parts need valid names, quantities and units.
+Equipment linked to a new issue is marked as needing repair.
+
+Work-assignment screens, employee work summaries and assignment buttons
+were retired in the later BCB Grounds update. Historical functions and
+terms may remain in source files and older documentation. Previous work
+records are retained as retiredWorkRecords; db.works is cleared by the
+current initialization. Do not treat older work/review plans or leftover
+repair-verification text as a complete active work-management module.
+
+PITCHES AND REPORTS
+Open a venue, then Pitch. Add pitch creates its directory entry. Enter
+name, status (Inactive, Active or Under maintenance), location/square,
+surface/type, details, photos and date taken. Up to four photos are
+supported in these photo collections. Active pitches also appear in
+Pitches in operation. New directories may be empty until records exist.
+
+Open a pitch to edit its profile or view dated reports. Add Report appends
+a new inspection report. Enter inspection date, condition, surface,
+grass coverage, moisture with unit, next inspection, observations,
+photos and date taken as relevant. Update report changes the selected
+report while retaining the others. The app contains migration logic for
+older single venue reports; full migration testing was not rerun for
+this export. A reference photo is not inspection evidence.
+
+MATCHES
+Open national Matches for the calendar. Use month controls, month/year
+selection, Today and date selection to inspect fixtures. Inside a venue,
+Matches stays scoped to that venue. Current venue grouping uses Ongoing,
+Recent, Upcoming, with cancelled fixtures separately available.
+
+Add match records title, ground, dates/times, pitch, format, status and
+photos where shown. Validate dates before saving. The app checks for
+timing conflicts at the same ground. Open a fixture for details and its
+preparation checklist; available actions include edit/reschedule and
+cancel. Cancellation retains the record. Checklist/readiness indicators
+do not replace a curator's real inspection or approval to play.
+
+MY PROFILE AND NOTIFICATIONS
+Open the profile picture on Home. Add/change full name, email and phone,
+then save. The name affects the greeting. These are local profile values,
+not verified ChatGPT identity or a real login account.
+
+Use the photo button to choose a JPG, PNG or WebP profile picture, then
+position/zoom and save it. That chooser accepts up to 8 MB before image
+processing; general operational photo paths have their own smaller
+limits (one reader caps input at 3 MB). Follow the message shown by the
+particular upload form and prefer small images to avoid storage limits.
+
+Activity log shows recorded actions. Notification preferences control
+in-app updates, currently focused on approvals. They do not send email,
+SMS or server push notifications. Workspace details and About are
+informational; changing profile text does not change site access rights.
+
+======================================================================
+6. BROWSER DATA, BACKUPS AND MOVING RECORDS
+======================================================================
+
+The ZIP contains files, bundled demo records and reference assets. It
+does not contain current localStorage from the live site, local file
+preview or any particular browser. Photos uploaded into those browser
+records are also not automatically present in this ZIP.
+
+Storage is isolated by browser profile and website origin. The live
+chatgpt.site URL, a new domain, file:// and http://127.0.0.1:4173 do not
+share records automatically. Switching localhost hostnames or ports can
+also select different storage. Private browsing and clearing site data
+can remove local edits. Source files are not a backup of browser edits.
+
+The source contains an older Export workspace data action, but it is in
+the legacy settings screen and is not exposed as a normal option in the
+current profile UI. Do not assume there is an accessible import/export
+menu. A supported, user-facing data migration workflow remains to be
+implemented.
+
+For a developer-assisted backup of existing records:
+1. Open the exact site/browser profile where the records were entered.
+2. Use that browser's developer tools and Application/Storage section.
+3. Select Local Storage for that exact origin.
+4. Copy the complete value of bcb-grounds-super-admin-v1 into a UTF-8
+   text file, preferably named bcb-grounds-browser-backup.json.
+5. Check that the copied text parses as JSON. Keep it private: it can
+   contain contact details, activity records and uploaded image data.
+
+The guide does not automatically restore or overwrite data. A developer
+should review backup compatibility and the target origin before any
+manual restore. Keep the original backup unchanged. Never clear storage
+or reset demo data as the first troubleshooting step.
+
+======================================================================
+7. TECHNICAL FILE MAP
+======================================================================
+
+app/index.html          Page entry, metadata, CSS/script loading order.
+app/style.css           Base layout and shared styling.
+app/client.css          Customer-facing mobile-style UI styling.
+app/client.js           Client navigation, Home, rendering and URL state.
+app/app.js              Seed records, shared state/rendering, forms,
+                        persistence and core inventory/request/match logic.
+app/photos.js           Photo galleries, uploads and reference labeling.
+app/issues.js           Fault reports, issue filters and repair detail UI.
+app/inventory.js        Grouped inventory, item validation and related UI.
+app/sheets.js           Bottom-sheet presentation and dismissal behavior.
+app/team.js             Designations, demo staff and employee biographies.
+app/matches.js          Calendar/date helpers, fixture and timing behavior.
+app/profile.js         Local profile, photo crop and notification settings.
+app/pitches.js          Pitch directory and multi-report inspection history.
+app/manifest.webmanifest App metadata and icons.
+app/assets/             Bundled logo, icons, ground/equipment/portrait images.
+app/assets/photo-credits.json
+                        Image sources and attribution information.
+
+dist/                   Prepared deployable copy of app/.
+scripts/preview.mjs     Local HTTP server, loopback only, port 4173.
+scripts/check.mjs       Syntax, entry asset and hosting-manifest checks.
+scripts/prepare.mjs     Copies app/ into dist/; does not publish anything.
+package.json            npm start, npm run check and npm run build.
+.openai/hosting.json    Existing Sites project identity and static output.
+
+The source-project retains that manifest for continuing the existing
+ChatGPT Site. It is not needed by an unrelated static host. Its project
+ID is an identifier, not a login credential. This archive contains no
+Git credential token or .git repository metadata.
+
+On an unrelated host, use website/ or dist/ as the output, not the whole
+source-project. Keep JavaScript script loading order intact: modules
+share global state/functions and are not independent ES modules.
+
+======================================================================
+8. EXISTING SITE, ACCESS AND OWNERSHIP
+======================================================================
+
+Current known site:
+  https://bcb-grounds-updated.goofybun20.chatgpt.site/
+Sites project ID:
+  appgprj_6ae03f8f7c1c819199776347309e689c
+Last verified published version: 1
+Known local/remote source commit:
+  7c31b73f9cc129effde52cc73d1c13aa664afe37
+
+On 13 November 2026, Sites reported the connected account as owner,
+the project active and its deployment succeeded. The live URL required
+ChatGPT sign-in in the test browser. This report is dated evidence, not
+a permanent guarantee of service status or access.
+
+Site ownership allows managing that project, publication and access.
+It does not transfer ownership of third-party reference photographs or
+BCB branding. Review supplied photo credits and applicable permissions
+before distributing or replacing images. The project contains source
+references, not a complete third-party image license dossier.
+
+The earlier Groundline handoff refers to another URL/project and
+version 21. Those are historical identifiers, not the current BCB Grounds
+Site to update. Do not switch the current hosting manifest to them.
+
+======================================================================
+9. PROJECT HISTORY AND DECISIONS
+======================================================================
+
+26 October: Earlier product handoff recorded the Groundline design and
+operational plans. It remains useful context, but some plans were later
+superseded.
+
+27 October: Renamed/rebranded BCB Grounds; supplied BCB logo incorporated;
+six team designation categories; venue team sections; employee biography
+fields; Responsible Admin removed from assets; work-assignment UI retired.
+Later updates introduced profile-based greeting, shorter Home summaries,
+pitch directory and multiple dated reports, and revised match grouping.
+
+28 October: Existing source retrieved into the BCB-Grounds local project.
+Five available turns from the original BCB Grounds ChatGPT conversation
+were archived as Markdown and JSON under history/. The reader reported
+no further pages. This is not proof that every original message, branch
+or attachment was recoverable. Old sandbox download links may not work.
+
+13 November: Local/source/deployment readiness checked. Main navigation
+worked without recorded console errors. Repeatable preview/check/build
+commands were added. Network-restricted source retrieval initially
+failed; the supported helper worked after network permission was allowed.
+The live browser reached its sign-in gate rather than the app contents.
+
+15 November: This portable ZIP and plain-text guide were prepared.
+
+Preserve the existing clean mobile-style design, navigation and real
+record relationships during future work. Use explicit demo labels and
+honest empty states. Do not invent employees, contact details, official
+photos or verified inspection evidence. Newer START-HERE notes and the
+actual current implementation take precedence over obsolete handoff text.
+
+======================================================================
+10. KNOWN LIMITATIONS AND TROUBLESHOOTING
+======================================================================
+
+Blank page or missing styling/images:
+  Extract the archive first. Keep index.html next to its JS/CSS files,
+  with assets/ beside them. Check case-sensitive names on the host.
+  Use a modern browser and a local HTTP server instead of file://.
+
+Local preview not opening:
+  Start npm start in source-project. Keep the terminal open. Port 4173
+  must be free. The development session may require network permission
+  for a local server. The server is not intended to stay running forever.
+
+Changes do not appear online:
+  Editing app/ does not publish. Run npm run build, upload current dist/
+  contents (or prepare a new website/ copy), and refresh. A browser cache
+  may show old assets on an external host. Verify the actual deployment.
+
+Live ChatGPT Site asks for login:
+  Sign in with the account allowed by that site's access settings.
+  File ownership, site access and local app role labels are separate.
+
+Sites source connection fails:
+  A network restriction or expired short-lived credential can cause this.
+  Use the supported Sites connection/helper, renew credentials when
+  necessary and request network permission if blocked. Do not save tokens
+  in scripts, ZIPs or Git configuration. A failed connection does not
+  automatically mean the app files or ownership have been lost.
+
+Records seem missing:
+  First check the exact URL, port, browser and browser profile used before.
+  A new origin has a different localStorage area. This is not cloud sync.
+
+Storage full or photos fail:
+  Use smaller photos and check the form's limit. Base64 image data uses
+  browser storage quickly. Back up existing data before removing records.
+  There is no durable cloud upload store in this version.
+
+Missing functionality:
+  Real shared data, account login/roles, staff maintenance, a polished
+  data export/import flow, email/SMS, a live worker app, and restored work
+  assignment/review workflows require additional development. Historical
+  source functions or labels alone do not mean these are complete.
+
+======================================================================
+11. HOW TO CONTINUE DEVELOPMENT
+======================================================================
+
+Keep a backup of this ZIP. Work from source-project/app/. Use npm start
+to inspect edits and npm run check to catch syntax/missing entry assets.
+Run npm run build before creating a new deployment package. The build
+script copies files; no framework compilation is required.
+
+For ChatGPT Sites, retain the current project identity. Use its supported
+source synchronization, packaging, save-version and deployment workflow.
+For another host, upload the prepared static files through that host.
+
+When handing the project to another developer or AI, provide this guide,
+source-project, START-HERE.md and the specific next change. Ask them to
+distinguish working prototype features from historical plans. Inspect
+the source and test the actual affected flow before claiming completion.
+
+For operational use by multiple staff, plan a separate engineering stage:
+authenticated users, server-enforced roles, shared database, file storage,
+backup/restore, audit history, privacy/access controls and data migration.
+Do not enter real operational data assuming the current browser demo
+already supplies those capabilities.
+
+======================================================================
+12. VERIFICATION AND SCOPE OF THIS PACKAGE
+======================================================================
+
+The export process checks the ten application JavaScript files, entry
+page asset references and hosting manifest, prepares the static output,
+and verifies ZIP entries against the packaged files using SHA-256 hashes.
+These checks do not prove every user workflow is free of defects.
+
+The last browser navigation check was 13 November, covering Home, a venue,
+Pitches, Inventory, Grounds Team and Matches. No console errors were
+recorded in that session. Save/upload/migration workflows were not all
+retested then or for this documentation export. Earlier notes mention
+118 automated checks and browser QA; those are historical claims, and
+that full test suite is not present in this retrieved project.
+
+The archive includes all current project files except .git metadata,
+generated export folders/ZIPs and any dependency/cache directories.
+It preserves recovered conversation files and prior handoff documents.
+It does not include inaccessible old attachments, unseen conversations,
+credentials, domain ownership, hosting accounts or browser-only records.
+
+END OF GUIDE

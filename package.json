@@ -1,0 +1,8 @@
+{
+  "name": "bcb-grounds",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/preview.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}
