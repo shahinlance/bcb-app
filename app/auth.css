@@ -1,0 +1,28 @@
+/* Sign-in screens */
+body.auth-active #app{display:none}
+.auth-shell{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 18px;background:linear-gradient(180deg,#eef5f0 0%,var(--canvas) 60%)}
+.auth-card{width:100%;max-width:380px;background:#fff;border:1px solid #dfe9e2;border-radius:22px;padding:30px 24px 24px;box-shadow:0 10px 30px #1b3b2a10;text-align:center}
+.auth-logo{width:76px;height:76px;object-fit:contain;display:block;margin:0 auto 14px}
+.auth-card h1{font-size:23px;letter-spacing:-.6px;margin:0 0 6px}
+.auth-sub{color:var(--muted);margin:0 0 20px;line-height:1.5}
+.auth-card form{text-align:left;display:grid;gap:4px}
+.auth-card .field{margin-bottom:10px}
+.auth-card .button{width:100%;justify-content:center;margin-top:6px}
+.auth-error{color:var(--red);min-height:18px;margin:2px 0;font-size:13px}
+.auth-error:empty{min-height:0}
+.auth-hint{color:var(--muted);font-size:12px;margin:-4px 0 4px}
+.auth-link{margin-top:16px;color:var(--green);font-weight:600;padding:6px}
+/* Users & access */
+.user-invite p{margin:6px 0 12px;line-height:1.5}
+.user-row small{display:block}
+.user-sub{color:var(--muted);margin-top:6px}
+.user-you{font-size:11px;font-weight:600;color:var(--green);background:var(--green-soft);border-radius:6px;padding:1px 6px;margin-left:4px}
+.user-venue-title{font-weight:600;margin:14px 0 6px}
+.user-venues{border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin:0 0 10px}
+.user-venues legend{font-size:12px;color:var(--muted);padding:0 4px}
+.user-venues .check-row{padding:7px 0}
+.user-active{margin:12px 0 4px}
+/* Profile */
+.account-row-note{color:var(--muted);font-size:12px}
+.account-signout{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:14px 0 30px;padding:14px;border:1px solid #f0d9d5;border-radius:14px;background:#fff;color:var(--red);font-weight:600}
+.user-venues .check-row:has(input:checked),.user-active:has(input:checked){color:var(--ink);font-weight:600}

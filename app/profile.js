@@ -6,7 +6,8 @@ const accountFields = {
   phone: {label:'Phone number', type:'tel', autocomplete:'tel', maximum:30}
 };
 function accountProfile() {
-  return {fullName:'Fahim Ahmed', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile};
+  const u=window.BCB_USER;
+  return {fullName:u?.name||'', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile, ...(u?{email:u.email}:{}), ...(u?.name?{fullName:u.name}:{})};
 }
 function accountPreference(key) { return accountProfile().notifications?.[key] !== false; }
 function accountNotificationCount(){return accountPreference('approvals')?db.requests.filter(r=>r.status==='Submitted').length:0;}
@@ -16,6 +17,7 @@ function accountAvatar() {
 }
 function accountDetailRow(key) {
   const p=accountProfile(), field=accountFields[key], value=p[key];
+  if(key==='email'&&window.BCB_USER)return `<div class="account-detail-row"><span><small>Sign-in email</small><strong>${esc(value)}</strong></span><span class="account-row-action account-row-note">Managed by Super Admin</span></div>`;
   return `<button class="account-detail-row" data-account-edit="${key}" aria-label="${value?'Change':'Add'} ${field.label.toLowerCase()}"><span><small>${field.label}</small><strong class="${value?'':'account-value-empty'}">${esc(value||'Not added')}</strong></span><span class="account-row-action">${value?'Change':'Add'}${icon('chevron')}</span></button>`;
 }
 function accountMenuRow(symbol,title,subtitle,attr) {
@@ -24,10 +26,11 @@ function accountMenuRow(symbol,title,subtitle,attr) {
 function accountProfilePage() {
   const p=accountProfile(), enabled=['approvals'].filter(accountPreference).length;
   return header('My profile','Manage your personal information.') +
-    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button></div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}Super Admin</span><p>Bangladesh Cricket Board</p>${p.photoIsReference?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
+    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button></div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>Bangladesh Cricket Board</p>${p.photoIsReference?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
     <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
-    <section class="account-section" aria-labelledby="account-options-title"><h2 id="account-options-title">Your account</h2><div class="account-group">${accountMenuRow('activity','Activity log','View changes and recent actions','data-go="activity"')}${accountMenuRow('bell','Notification preferences',enabled===1?'All in-app updates':enabled?enabled+' update types on':'In-app updates paused','data-account-action="notifications"')}${accountMenuRow('shield','Workspace details','Your role, organisation and timezone','data-account-action="workspace"')}</div></section>
-    <button class="account-about" data-account-action="about">About BCB Grounds${icon('chevron')}</button>`;
+    <section class="account-section" aria-labelledby="account-options-title"><h2 id="account-options-title">Your account</h2><div class="account-group">${isSuper()?accountMenuRow('team','Users & access','Invite people, set roles and venues','data-go="users"'):''}${accountMenuRow('activity','Activity log','View changes and recent actions','data-go="activity"')}${accountMenuRow('bell','Notification preferences',enabled===1?'All in-app updates':enabled?enabled+' update types on':'In-app updates paused','data-account-action="notifications"')}${accountMenuRow('shield','Workspace details','Your role, organisation and timezone','data-account-action="workspace"')}</div></section>
+    <button class="account-about" data-account-action="about">About BCB Grounds${icon('chevron')}</button>
+    <button class="account-signout" data-sign-out>${icon('logout')}Sign out</button>`;
 }
 function accountSheet(html, cancel='Cancel') {
   showModal(html);
@@ -106,7 +109,7 @@ function accountNotificationsSheet() {
   accountSheet(`<h3>Notification preferences</h3><p class="account-photo-help">Choose which updates appear in Notifications.</p><form data-account-form="notifications"><div class="account-group account-notification-options">${rows.map(([key,label,help])=>`<label class="account-toggle-row"><span><strong>${label}</strong><small>${help}</small></span><input type="checkbox" name="${key}" ${accountPreference(key)?'checked':''} role="switch"><i aria-hidden="true"></i></label>`).join('')}</div><p class="account-form-help">In-app updates only. These settings do not send email or SMS.</p><p class="account-form-error" role="alert"></p><button class="button" type="submit">Save preferences${icon('check')}</button></form>`);
 }
 function accountWorkspaceSheet() {
-  accountSheet(`<h3>Workspace details</h3><dl class="account-workspace-details"><div><dt>Organisation</dt><dd>Bangladesh Cricket Board</dd></div><div><dt>Role</dt><dd>Super Admin</dd></div><div><dt>Grounds in your workspace</dt><dd>${grounds.length} venues · 8 BCB · 14 rented</dd></div><div><dt>Timezone</dt><dd>Bangladesh · UTC +06:00</dd></div></dl><p class="account-form-help">Your role and workspace are managed by your organisation.</p>`,'Done');
+  accountSheet(`<h3>Workspace details</h3><dl class="account-workspace-details"><div><dt>Organisation</dt><dd>Bangladesh Cricket Board</dd></div><div><dt>Role</dt><dd>${esc(window.BCB_USER?.appRole||state.role)}</dd>${window.BCB_USER?.role==='admin'?`<div><dt>Your venues</dt><dd>${esc(venueSummary(BCB_USER.venues))}</dd></div>`:''}</div><div><dt>Grounds in your workspace</dt><dd>${grounds.length} venues · 8 BCB · 14 rented</dd></div><div><dt>Timezone</dt><dd>Bangladesh · UTC +06:00</dd></div></dl><p class="account-form-help">Your role and workspace are managed by your organisation.</p>`,'Done');
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;

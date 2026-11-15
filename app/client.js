@@ -106,6 +106,7 @@ function clientAccount() { return accountProfilePage(); }
 function clientContent() {
   if (state.screen === 'home') return clientHome();
   if (state.screen === 'settings') return clientAccount();
+  if (state.screen === 'users') return usersAccessPage();
   if (['issues', 'work'].includes(state.screen)) return clientIssues();
   if (['inventory', 'requests', 'transfers'].includes(state.screen)) return clientInventory();
   return content();
@@ -131,11 +132,11 @@ function bindClientTools() {
   sync();
 }
 function renderClient() {
-  document.body.classList.add('client-view'); state.role = 'Super Admin'; state.mode = 'Live';
+  document.body.classList.add('client-view'); state.role = window.BCB_USER?.appRole || 'Visitor'; state.mode = 'Live';
   const tab = clientActiveTab();
   const pending = db.requests.some(r => r.status === 'Submitted');
   const reviews = db.works.some(w => w.status === 'Ready for review');
-  $('#app').innerHTML = `<main class="client-shell"><div class="phone client-phone" aria-label="BCB Grounds Super Admin app"><div class="statusbar client-status"><span>9:41</span><i class="island"></i><div class="system-icons">${icon('signal')}${icon('wifi')}${icon('battery', 'battery')}</div></div><div class="appbody" id="client-scroll"><div class="phone-content client-content" data-screen="${state.screen}" data-root="${clientRoot()}">${clientContent()}</div></div><nav class="phone-footer" aria-label="Main navigation">${[['home', 'Home', 'home'], ['inventory', 'Inventory', 'box'], ['team', 'Grounds Team', 'team'], ['issues', 'Issues', 'alert'], ['matches', 'Matches', 'match']].map(([id, label, ic]) => `<button data-tab="${id}" class="${tab === id ? 'active' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${clientNavIcon(ic, tab === id)}<span>${label}</span>${(id === 'inventory' && pending || id === 'issues' && reviews) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}<div class="home-indicator"></div></nav></div></main>`;
+  $('#app').innerHTML = `<main class="client-shell"><div class="phone client-phone" aria-label="BCB Grounds app"><div class="statusbar client-status"><span>9:41</span><i class="island"></i><div class="system-icons">${icon('signal')}${icon('wifi')}${icon('battery', 'battery')}</div></div><div class="appbody" id="client-scroll"><div class="phone-content client-content" data-screen="${state.screen}" data-root="${clientRoot()}">${clientContent()}</div></div><nav class="phone-footer" aria-label="Main navigation">${[['home', 'Home', 'home'], ['inventory', 'Inventory', 'box'], ['team', 'Grounds Team', 'team'], ['issues', 'Issues', 'alert'], ['matches', 'Matches', 'match']].map(([id, label, ic]) => `<button data-tab="${id}" class="${tab === id ? 'active' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${clientNavIcon(ic, tab === id)}<span>${label}</span>${(id === 'inventory' && pending || id === 'issues' && reviews) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}<div class="home-indicator"></div></nav></div></main>`;
   bindAppSearch(); bindClientTools();
   $('.appbody').scrollTop = clientScroll[clientViewKey()] || 0;
   document.title = 'BCB Grounds · ' + (state.screen === 'work' || state.screen === 'issues' ? 'Issues' : state.screen === 'requests' || state.screen === 'transfers' ? 'Inventory' : screenInfo()?.[1] || 'Super Admin');

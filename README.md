@@ -4,15 +4,15 @@ Grounds operations app for the Bangladesh Cricket Board: venues, inventory, grou
 
 ## Status
 
-Working prototype. Plain HTML, CSS and JavaScript, no build step. Records are currently saved only in each user's browser (localStorage) — there is no login or shared data yet.
+Plain HTML, CSS and JavaScript, no build step. **Sign-in and roles run on Supabase** (phase 1, on `dev`); operational records are still saved per browser until phase 3. Setup steps: [docs/SETUP-SUPABASE.md](docs/SETUP-SUPABASE.md).
 
 ## Roadmap
 
-1. **Logins and roles** (Supabase Auth, invite-only)
+1. ✅ **Logins and roles** (Supabase Auth, invite-only)
    - **Visitor** — e.g. Chairman; views everything, edits nothing.
    - **Super Admin** — full access; invites users, assigns roles and venues.
    - **Admin** — edits records only for their assigned venue(s).
-2. **Users & Access** section inside the app (Super Admin only), with activity log.
+2. ✅ **Users & Access** section inside the app (Super Admin only), with activity log. *Next: in-app Invite button (Edge Function).*
 3. **Shared database and photo storage** (Supabase); move each module off localStorage.
 4. **Real data** — venues, staff, equipment, replacing demo records and stock photos.
 5. **Launch** — Hostinger deploys `app/` from the `main` branch.
@@ -35,6 +35,7 @@ npm run check  # JavaScript syntax + asset reference checks
 
 ```
 app/       the web app (this folder is what gets hosted)
+supabase/  database setup scripts, run in order in the Supabase SQL Editor
 scripts/   local preview and checks
 docs/      guide, product handoff, change notes, recovered chat history
 ```
