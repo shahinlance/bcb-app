@@ -12,8 +12,8 @@ Supabase → **Authentication** → **Sign In / Providers**:
 
 ## 3. Tell Supabase where the app lives
 Supabase → **Authentication** → **URL Configuration**:
-- **Site URL**: the address where you open the app. While testing on your laptop, use `http://127.0.0.1:4173`. Change it to the Hostinger address later.
-- **Redirect URLs**: add `http://127.0.0.1:4173/**`. Add the Hostinger address later too.
+- **Site URL**: `https://bcbgrounds.com`
+- **Redirect URLs**: add `https://bcbgrounds.com/**`. If you also preview on your laptop, add `http://127.0.0.1:4173/**`.
 
 Invite and password-reset emails open this address.
 

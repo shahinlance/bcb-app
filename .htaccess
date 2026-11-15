@@ -1,0 +1,27 @@
+# BCB Grounds · Hostinger (Apache/LiteSpeed) rules
+# Hostinger deploys the whole repo into public_html; the app itself lives in app/.
+
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Keep project files private: only the app is public.
+RewriteRule ^(\.git|docs|supabase|scripts)(/.*)?$ - [F,L]
+RewriteRule ^(README\.md|package\.json|\.gitignore|\.htaccess)$ - [F,L]
+
+# Serve app/ at the site root
+RewriteCond %{REQUEST_URI} !^/app/
+RewriteRule ^(.*)$ app/$1 [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+# Always fetch the newest app code after a deploy
+<FilesMatch "\.(html|js|css)$">
+Header set Cache-Control "no-cache"
+</FilesMatch>
+</IfModule>

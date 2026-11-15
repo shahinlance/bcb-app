@@ -15,12 +15,12 @@ Plain HTML, CSS and JavaScript, no build step. **Sign-in and roles run on Supaba
 2. ✅ **Users & Access** section inside the app (Super Admin only), with activity log. *Next: in-app Invite button (Edge Function).*
 3. **Shared database and photo storage** (Supabase); move each module off localStorage.
 4. **Real data** — venues, staff, equipment, replacing demo records and stock photos.
-5. **Launch** — Hostinger deploys `app/` from the `main` branch.
+5. **Launch** — bcbgrounds.com (Hostinger, deployed from `main`; `.htaccess` serves `app/` at the root and keeps other folders private).
 
 ## Branches
 
-- `main` — approved, live version.
-- `dev` — day-to-day work; merged into `main` when approved.
+- `main` — what runs at **https://bcbgrounds.com**. Hostinger auto-deploys every push to `main`.
+- `dev` — work in progress; merged into `main` once checked. To undo a bad release, revert the commit on `main`.
 
 ## Working locally
 
@@ -48,4 +48,4 @@ docs/      guide, product handoff, change notes, recovered chat history
 
 ## Known to-do
 
-- `og:image` in `app/index.html` still points to the old ChatGPT Sites URL; update once the Hostinger domain is set.
+- None open from the handover.
