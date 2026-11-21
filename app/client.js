@@ -74,7 +74,7 @@ function clientHome() {
   const repairs = db.assets.filter(a => assetCondTone(a.condition) === 'coral').length + openIssues().length;
   const bell = isSuper() ? `<button class="icon-btn" data-go="alerts" aria-label="Notifications">${icon('bell')}${!db.notificationsRead && accountNotificationCount() ? '<i class="notice-dot"></i>' : ''}</button>` : '';
   return `<div class="client-brand-row"><div class="app-brand app-brand--strong"><img class="bcb-logo" src="assets/bcb-logo.png" alt="Bangladesh Cricket Board logo"><span>BCB Grounds</span></div><div class="client-top-buttons">${bell}<button class="client-avatar account-home-avatar" data-go="settings" aria-label="Your profile">${accountAvatar()}</button></div></div>
-  <h1 class="app-title">Hi, ${esc(accountProfile().fullName || 'there')}</h1>
+  <p class="home-hello">Hello,</p><h1 class="app-title home-name">${esc(accountProfile().fullName || 'there')}</h1>
   <div class="summary-metrics summary-metrics--home summary-metrics--two">${summaryMetric(grounds.length, 'Venues', 'ground', {tag:'button',attributes:'data-go="grounds"'})}${summaryMetric(repairs, 'Total issues', 'alert', {tag:'button',tone:'coral',attributes:'data-go="issues"'})}</div>
   ${clientHomeTools()}${section('All Venues', 'See all', 'grounds')}
   ${grounds.map(groundCard).join('')}`;

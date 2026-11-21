@@ -158,8 +158,8 @@ button.summary-metric[data-repair-toggle][aria-expanded="true"]{outline:2px soli
 .venue-card .ground-top{align-items:center}
 .venue-card-chips{margin:0}
 .venue-card-chips .chip svg{width:13px;height:13px}
-.venue-card-open{align-self:center;display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:9px 22px;border-radius:999px;background:var(--green);color:#fff;font-weight:700;font-size:14px}
-.venue-card-open svg{width:14px;height:14px}
+.venue-card-open{align-self:center;display:inline-flex;align-items:center;gap:4px;margin-top:2px;padding:6px 14px;border-radius:999px;background:var(--green-soft);color:var(--green);font-weight:650;font-size:12px}
+.venue-card-open svg{width:12px;height:12px}
 /* ── Repair group card ── */
 .repair-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;background:#fff6f3;border:1px solid #f3c9bf;border-radius:18px;padding:14px;margin:4px 0 18px;cursor:pointer}
 .repair-card-icon{width:42px;height:42px;border-radius:12px;background:#d6453d;color:#fff;display:grid;place-items:center;flex:none}
@@ -194,3 +194,10 @@ button.summary-metric[data-repair-toggle][aria-expanded="true"]{outline:2px soli
 .invite-photo-preview{width:64px;height:64px;border-radius:50%;background:var(--green-soft);color:var(--green);display:grid;place-items:center;overflow:hidden;flex:none}
 .invite-photo-preview img{width:100%;height:100%;object-fit:cover}
 .invite-photo-preview svg{width:28px;height:28px}
+.clay-detail{margin-top:14px}
+.home-hello{margin:6px 0 0;font-size:16px;color:#6f7f74;font-weight:500}
+.app-title.home-name{font-size:clamp(20px,6.6vw,28px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 0 14px;letter-spacing:-.8px}
+.invite-mode{border:0;padding:0;margin:14px 0 0}
+.invite-mode legend{font-size:11px;font-weight:600;color:#536a59;margin-bottom:2px}
+.welcome-text{white-space:pre-wrap;font:13px/1.55 inherit;font-family:inherit;background:#f4f7f0;border-radius:11px;padding:14px;margin:12px 0;overflow-wrap:anywhere}
+a.button{text-decoration:none}

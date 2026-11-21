@@ -118,7 +118,7 @@ function venueClayCard(id, compact = false) {
     <div class="clay-figures"><div><strong>${clayNum(present)} <em>${CLAY_UNIT}</em></strong><span>In stock now</span></div><div><strong>${clayNum(opening)} <em>${CLAY_UNIT}</em></strong><span>${esc(openLabel)} stock</span></div><div><strong>${clayNum(used)} <em>${CLAY_UNIT}</em></strong><span>Used / given</span></div></div>
     ${opening ? (() => { const pct = Math.max(0, Math.min(100, present / opening * 100)); return `<div class="clay-bar" role="img" aria-label="${Math.round(pct)}% of stock left"><i class="clay-${clayTone(pct)}" style="width:${Math.max(pct, 2)}%"></i></div><p class="clay-left clay-left--${clayTone(pct)}"><strong>${Math.round(pct)}%</strong> of ${esc(openLabel)} stock left</p>`; })() : ''}
     ${mismatch ? `<p class="clay-warn">${icon('alert')}Doesn't add up: ${clayNum(opening)} − ${clayNum(used)} = ${clayNum(expected)}, but stock shows ${clayNum(present)} ${CLAY_UNIT}.</p>` : ''}
-    ${compact ? `<span class="clay-more">See details ${icon('chevron')}</span>` : rows.map(r => `<h4 class="clay-sub">${esc(r.color || 'Clay')}</h4>${fieldTable(r)}${r.photos?.length ? photoCarousel(r.photos, 'Pitch clay') : ''}`).join('')}
+    ${compact ? `<span class="clay-more">See details ${icon('chevron')}</span>` : rows.map(r => `<div class="clay-detail">${fieldTable(r)}</div>${r.photos?.length ? photoCarousel(r.photos, 'Pitch clay') : ''}`).join('')}
   </${tag}>`;
 }
 function clayHead(title, sub) { return `<div class="clay-head"><span class="clay-icon">${icon('ground')}</span><div><h3>${esc(title)}</h3><small>${esc(sub)}</small></div></div>`; }

@@ -40,7 +40,7 @@ function usersAccessPage() {
   if (!isSuper()) return header('Users & access') + empty('Super Admins only', 'Ask a Super Admin to change user access.');
   if (!userAccess.list && !userAccess.loading && !userAccess.error) loadUserAccess();
   const top = header('Users & access', 'Who can sign in, and what they can do.') +
-    `<div class="card soft user-invite"><h3>Add a person</h3><p>Enter their details and send an invite. They get an email, choose their own password, and find their name and photo ready.</p><div class="user-invite-actions"><button class="button small" data-user-invite>${icon('plus')}Invite a person</button><button class="button secondary small" data-users-refresh>${icon('refresh')}Refresh</button></div></div>`;
+    `<div class="card soft user-invite"><h3>Add a person</h3><p>Enter their details and set a password (or email them a link). Their name and photo will be ready when they sign in.</p><div class="user-invite-actions"><button class="button small" data-user-invite>${icon('plus')}Invite a person</button><button class="button secondary small" data-users-refresh>${icon('refresh')}Refresh</button></div></div>`;
   if (userAccess.error) return top + `<div class="card"><h3>Couldn't load users</h3><p>${esc(userAccess.error)}</p><button class="button secondary" data-users-refresh>Try again</button></div>`;
   if (!userAccess.list) return top + '<p class="sub" style="padding:16px 4px">Loading users…</p>';
   const L = userAccess.list, groupsOf = [
@@ -77,12 +77,33 @@ function inviteForm() {
       <label class="field">Email<input name="email" type="email" maxlength="254" autocomplete="off" required></label>
       <label class="field">Phone<input name="phone" type="tel" maxlength="30" autocomplete="off"></label>
       <label class="field">Designation<input name="designation" maxlength="80" placeholder="e.g. Chairman" autocomplete="off"></label>
+      <fieldset class="invite-mode"><legend>How they sign in</legend>
+        <label class="check-row"><input type="radio" name="mode" value="password" checked>I'll set their password</label>
+        <label class="check-row"><input type="radio" name="mode" value="link">Email them a link to choose their own</label>
+      </fieldset>
+      <div data-invite-pw><label class="field">Password<input name="password" type="text" minlength="8" maxlength="72" autocomplete="off" spellcheck="false"></label><button type="button" class="textbtn" data-suggest-pw>Suggest a password</button></div>
       <label class="field">Role<select name="role">${Object.entries(ROLE_LABEL).map(([k, t]) => `<option value="${k}" ${k === 'visitor' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <p class="account-form-help" data-role-help>${ROLE_HELP.visitor}</p>
       <div data-venue-picker hidden><p class="user-venue-title" data-venue-title>Venues this Admin can update</p>${venueChecklist([])}</div>
       <div class="account-form-error" role="alert"></div>
-      <button class="button" type="submit">Send invite</button>
+      <button class="button" type="submit">Create account</button>
     </form>`);
+}
+function suggestPassword() {
+  const abc = 'abcdefghjkmnpqrstuvwxyz', dig = '23456789', r = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  const word = k => Array.from({ length: k }, () => abc[r(abc.length)]).join('');
+  return `Bcb-${word(4)}-${Array.from({ length: 4 }, () => dig[r(dig.length)]).join('')}`;
+}
+function welcomeText(b) {
+  return `Dear ${b.full_name},\n\nYour BCB Grounds account is ready.\n\nWebsite: https://bcbgrounds.com\nEmail: ${b.email}\nPassword: ${b.password}\n\nPlease keep this password private.\n\n${BCB_USER?.name || "BCB Grounds"}\nBCB Grounds`;
+}
+function accountReady(b) {
+  const text = welcomeText(b), mail = `mailto:${encodeURIComponent(b.email)}?subject=${encodeURIComponent('Your BCB Grounds account')}&body=${encodeURIComponent(text)}`;
+  accountSheet(`<h3>Account ready</h3><p class="account-form-help">${esc(b.full_name)} can sign in now. Send them these details:</p>
+    <pre class="welcome-text">${esc(text)}</pre>
+    <a class="button" href="${mail}">${icon('arrow')}Email it to ${esc(b.email)}</a>
+    <button class="button secondary" data-copy-welcome>Copy message</button>`, 'Done');
+  document.querySelector('[data-copy-welcome]').onclick = () => navigator.clipboard?.writeText(text).then(() => toast('Message copied'), () => toast('Copy not available'));
 }
 
 function userEditor(id) {
@@ -104,6 +125,11 @@ function userEditor(id) {
 }
 
 document.addEventListener('change', e => {
+  if (e.target.name === 'mode' && e.target.closest('[data-invite-form]')) {
+    const f = e.target.closest('form'), pw = f.elements.mode.value === 'password';
+    f.querySelector('[data-invite-pw]').hidden = !pw; f.querySelector('[type=submit]').textContent = pw ? 'Create account' : 'Send invite';
+    return;
+  }
   if (e.target.matches('[data-invite-photo]')) {
     const out = e.target.closest('form').querySelector('[role=alert]'), prev = document.querySelector('[data-invite-preview]');
     out.textContent = 'Preparing photo…';
@@ -121,6 +147,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.userEdit) { userEditor(b.dataset.userEdit); return; }
   if (b.dataset.userInvite !== undefined) { inviteForm(); return; }
+  if (b.dataset.suggestPw !== undefined) { const i = b.closest('form').elements.password; i.value = suggestPassword(); i.focus(); return; }
   if (b.dataset.usersRefresh !== undefined) { userAccess.list = null; userAccess.error = ''; render(); return; }
   if (b.dataset.signOut !== undefined) { bcbSignOut(); return; }
 });
@@ -131,18 +158,21 @@ document.addEventListener('submit', async e => {
   const f = form.elements, out = form.querySelector('[role=alert]'), btn = form.querySelector('[type=submit]');
   const body = { full_name: f.full_name.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), designation: f.designation.value.trim(), role: f.role.value,
     venues: [...form.querySelectorAll('input[name=venue]:checked')].map(i => +i.value), photo: invitePhoto };
+  const withPw = f.mode.value === 'password'; if (withPw) body.password = f.password.value.trim();
   out.textContent = '';
   if (body.full_name.length < 2) { out.textContent = "Enter the person's full name."; return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) { out.textContent = 'Enter a valid email address.'; return; }
+  if (withPw && (body.password.length < 8 || body.password.length > 72)) { out.textContent = 'Choose a password of at least 8 characters.'; return; }
   if (['admin', 'venue_viewer'].includes(body.role) && !body.venues.length) { out.textContent = 'Choose at least one venue.'; return; }
-  btn.disabled = true; btn.textContent = 'Sending…';
+  const label = btn.textContent; btn.disabled = true; btn.textContent = withPw ? 'Creating…' : 'Sending…';
   try {
     const { data, error } = await sb.functions.invoke('invite-user', { body });
     let msg = data?.error;
     if (error) { try { msg = (await error.context.json()).error; } catch { msg = msg || authMessage(error); } }
     if (msg) throw Error(msg);
-    closeModal(); toast(`Invite sent to ${body.email}`); userAccess.list = null; render();
-  } catch (err) { out.textContent = err.message; btn.disabled = false; btn.textContent = 'Send invite'; }
+    userAccess.list = null;
+    if (withPw) { await loadUserAccess(); render(); accountReady(body); } else { closeModal(); toast(`Invite sent to ${body.email}`); render(); }
+  } catch (err) { out.textContent = err.message; btn.disabled = false; btn.textContent = label; }
 }, true);
 
 document.addEventListener('submit', async e => {

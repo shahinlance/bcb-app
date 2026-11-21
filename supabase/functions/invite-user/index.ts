@@ -35,6 +35,7 @@ Deno.serve(async (req) => {
   const role = s(b.role, 20) || "visitor";
   const venues = Array.isArray(b.venues) ? b.venues.map(Number).filter((n) => Number.isInteger(n) && n > 0) : [];
   const photo = typeof b.photo === "string" ? b.photo : "";
+  const password = typeof b.password === "string" ? b.password : "";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply({ error: "Enter a valid email address." }, 400);
   if (fullName.length < 2) return reply({ error: "Enter the person's full name." }, 400);
@@ -43,11 +44,14 @@ Deno.serve(async (req) => {
   if (photo && (photo.length > 400000 || !/^data:image\/(jpeg|png|webp);base64,/.test(photo)))
     return reply({ error: "That photo is too large. Try another." }, 400);
 
-  const { data: inv, error: invErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName }, redirectTo: SITE,
-  });
+  if (password && (password.length < 8 || password.length > 72)) return reply({ error: "Password must be 8 to 72 characters." }, 400);
+  // With a password: the account is ready at once and the Super Admin sends the details.
+  // Without: Supabase emails an invite link and the person chooses their own password.
+  const { data: inv, error: invErr } = password
+    ? await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: fullName } })
+    : await admin.auth.admin.inviteUserByEmail(email, { data: { full_name: fullName }, redirectTo: SITE });
   if (invErr || !inv?.user) {
-    const msg = /already been registered|already exists/i.test(invErr?.message || "")
+    const msg = /already been registered|already exists|already registered/i.test(invErr?.message || "")
       ? "This email already has an account. Open them in the list below instead."
       : invErr?.message || "The invite could not be sent.";
     return reply({ error: msg }, 400);
@@ -64,7 +68,7 @@ Deno.serve(async (req) => {
     if (vErr) return reply({ error: "Invite sent, but venues were not saved: " + vErr.message }, 500);
   }
   await admin.from("activity_log").insert({
-    actor_id: who.user.id, action: "User invited", detail: { user: id, email, role, venues },
+    actor_id: who.user.id, action: password ? "User added" : "User invited", detail: { user: id, email, role, venues },
   });
   return reply({ ok: true, id });
 });
