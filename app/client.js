@@ -66,30 +66,20 @@ function summaryMetric(value, label, symbol, options = {}) {
   return `<${tag} class="summary-metric summary-metric--${tone}" style="--metric-number-size:${size}" ${tag === 'button' ? `type="button" aria-label="${esc(value)} ${esc(label)}"` : ''} ${options.attributes || ''}><span class="summary-metric-symbol">${summaryMetricIcon(symbol)}</span><span class="summary-metric-copy"><strong class="summary-metric-number">${esc(value)}</strong><span class="summary-metric-label">${esc(label)}</span></span></${tag}>`;
 }
 function clientHomeTools() {
-  const assetPic = 'assets/illus-assets.svg', staffPic = 'assets/illus-staff.svg';
   const repair = db.assets.filter(a => assetCondTone(a.condition) === 'coral').length;
-  const card = (go, label, pic, fallback, ic, title, sub) => `<button class="client-tool-card" data-go="${go}" aria-label="${label}">
-      <div class="client-tool-photo client-tool-photo--illus"><img src="${esc(pic || fallback)}" alt="" decoding="async"></div>
-      <div class="client-tool-info"><div class="client-tool-title">${icon(ic)}<strong>${title}</strong>${icon('arrow')}</div><small>${sub}</small></div>
-    </button>`;
-  return `<div class="client-tools" aria-label="Ground management shortcuts" aria-roledescription="carousel">
-    ${card('assets', 'Assets and Pitch Clay', assetPic, 'assets/machine-roller.jpg', 'box', 'Assets', db.assets.length ? `${db.assets.length} items${repair ? ' · ' + repair + ' need repair' : ''}` : 'Pitch Clay · equipment')}
-    ${card('staff', 'Staff Members', staffPic, 'assets/machine-mower.jpg', 'team', 'Staff Members', db.staff.length ? `${db.staff.length} people · office & grounds` : 'Office & grounds teams')}
-  </div><div class="client-tool-pagination" aria-label="Choose a shortcut card"><button data-tool-slide="0" aria-label="Show Assets card" aria-pressed="true"><i></i></button><button data-tool-slide="1" aria-label="Show Staff card" aria-pressed="false"><i></i></button></div>`;
+  const card = (go, ic, title, line1, line2, tone) => `<button class="home-tile home-tile--${tone}" data-go="${go}"><span class="home-tile-icon">${icon(ic)}</span><strong>${title}</strong><small>${line1}</small>${line2 ? `<small class="home-tile-alert">${line2}</small>` : ''}</button>`;
+  return `<div class="home-tiles">${card('assets', 'box', 'Assets', `${db.assets.length} items · Pitch Clay`, repair ? `${repair} need repair` : '', 'assets')}${card('staff', 'team', 'Staff Members', `${db.staff.length} people`, `${db.staff.filter(p => p.team === 'Office Team').length} office · ${db.staff.filter(p => p.team === 'Grounds Team').length} grounds`, 'staff')}</div>`;
 }
 function clientHome() {
-  const urgent = openIssues().filter(i => i.urgency === 'Urgent');
-  const pending = db.requests.filter(r => r.status === 'Submitted');
-  const reviews = db.works.filter(w => w.status === 'Ready for review');
-  const attention = new Set(urgent.map(i => i.ground)).size;
-  return `<div class="client-brand-row"><div class="app-brand"><img class="bcb-logo" src="assets/bcb-logo.png" alt="Bangladesh Cricket Board logo"><span>BCB Grounds</span></div><div class="client-top-buttons"><button class="icon-btn" data-go="alerts" aria-label="Notifications">${icon('bell')}${!db.notificationsRead && accountNotificationCount() ? '<i class="notice-dot"></i>' : ''}</button><button class="client-avatar account-home-avatar" data-go="settings" aria-label="Your profile">${accountAvatar()}</button></div></div>
-  <h1 class="app-title">Good Morning<br>${esc(accountProfile().fullName||'Welcome')}</h1><p class="app-subtitle">Every ground. A clearer picture.</p>
-  ${urgent.length ? `<button class="client-attention" data-go="issues" data-issue-filter-priority="Urgent" aria-label="${attention} grounds need attention · ${urgent.length} urgent issues">${clientAttentionPhotos(urgent)}<span><strong>${attention} grounds need attention</strong><small>${urgent.length} urgent issues to look into</small></span>${icon('chevron')}</button>` : `<div class="client-attention calm"><span class="attention-symbol">${icon('check')}</span><span><strong>Grounds are on track</strong><small>No urgent issue reported</small></span></div>`}
-  <div class="summary-metrics summary-metrics--home summary-metrics--two">${summaryMetric(grounds.length, 'Venues', 'ground', {tag:'button',attributes:'data-go="grounds"'})}${summaryMetric(db.assets.filter(a => assetCondTone(a.condition) === 'coral').length + openIssues().length, 'Total issues', 'alert', {tag:'button',tone:'coral',attributes:'data-go="assets" data-repair-open="1"'})}</div>
-  ${clientHomeTools()}${section('Your grounds', 'See all', 'grounds')}<p class="ground-directory-caption">8 BCB grounds · 14 rented venues · Priority order</p><div class="filters">${['All grounds', 'Needs attention', 'On track'].map(x => `<button class="filter ${state.filter === x ? 'active' : ''}" data-home-filter="${x}">${x}</button>`).join('')}</div>
-  ${grounds.filter(g => state.filter === 'All grounds' || state.filter === 'Needs attention' && openIssues().some(i => i.ground === g.id) || state.filter === 'On track' && !openIssues().some(i => i.ground === g.id) && g.id !== 6 && g.status !== 'No report').map(groundCard).join('')}`;
+  const repairs = db.assets.filter(a => assetCondTone(a.condition) === 'coral').length + openIssues().length;
+  const bell = isSuper() ? `<button class="icon-btn" data-go="alerts" aria-label="Notifications">${icon('bell')}${!db.notificationsRead && accountNotificationCount() ? '<i class="notice-dot"></i>' : ''}</button>` : '';
+  return `<div class="client-brand-row"><div class="app-brand app-brand--strong"><img class="bcb-logo" src="assets/bcb-logo.png" alt="Bangladesh Cricket Board logo"><span>BCB Grounds</span></div><div class="client-top-buttons">${bell}<button class="client-avatar account-home-avatar" data-go="settings" aria-label="Your profile">${accountAvatar()}</button></div></div>
+  <h1 class="app-title">Hi, ${esc(accountProfile().fullName || 'there')}</h1>
+  <div class="summary-metrics summary-metrics--home summary-metrics--two">${summaryMetric(grounds.length, 'Venues', 'ground', {tag:'button',attributes:'data-go="grounds"'})}${summaryMetric(repairs, 'Total issues', 'alert', {tag:'button',tone:'coral',attributes:'data-go="issues"'})}</div>
+  ${clientHomeTools()}${section('All Venues', 'See all', 'grounds')}
+  ${grounds.map(groundCard).join('')}`;
 }
-function clientIssues(){return issuesPage();}
+function clientIssues(){return issuesByVenuePage();}
 function clientIssueProgress(){return ''; }
 function clientInventoryNav(active) {
   const pending = db.requests.filter(r => r.status === 'Submitted' && (!state.scope || r.ground === state.ground)).length;
@@ -117,7 +107,9 @@ function clientActiveTab() {
   if (['issues', 'issue-detail', 'report-issue', 'work', 'work-detail', 'assign', 'update-work', 'review'].includes(state.screen)) return 'issues';
   if (['inventory', 'inventory-group', 'asset', 'stock', 'requests', 'request-detail', 'new-request', 'transfers'].includes(state.screen)) return 'inventory';
   if (['team','team-group','employee-profile'].includes(state.screen)) return 'team';
-  if (['assets', 'asset-group', 'asset-item', 'clay'].includes(state.screen)) return 'assets';
+  if (state.screen === 'asset-repair' && state.repairFrom === 'issues') return 'issues';
+  if (state.screen === 'asset-repair' && state.repairFrom === 'venue') return 'home';
+  if (['assets', 'asset-group', 'asset-item', 'clay', 'asset-repair'].includes(state.screen)) return 'assets';
   if (['staff', 'staff-group', 'staff-profile'].includes(state.screen)) return 'staff';
   if (['matches', 'match', 'add-match'].includes(state.screen)) return 'matches';
   return 'home';

@@ -15,7 +15,8 @@ function accountPreference(key) { return accountProfile().notifications?.[key] !
 function accountNotificationCount(){return accountPreference('approvals')?db.requests.filter(r=>r.status==='Submitted').length:0;}
 function accountAvatar() {
   const p=accountProfile();
-  return `<img src="${esc(p.photo)}" alt="${p.photoIsReference ? 'Demo profile portrait' : 'Your profile photo'}" draggable="false">`;
+  if(p.photoIsReference||!p.photo)return `<span class="account-initials" role="img" aria-label="${esc(p.fullName||'Your profile')}">${esc(staffInitials(p.fullName||'?'))}</span>`;
+  return `<img src="${esc(p.photo)}" alt="Your profile photo" draggable="false">`;
 }
 function accountDetailRow(key) {
   const p=accountProfile(), field=accountFields[key], value=p[key];
@@ -27,8 +28,14 @@ function accountMenuRow(symbol,title,subtitle,attr) {
 }
 function accountProfilePage() {
   const p=accountProfile(), enabled=['approvals'].filter(accountPreference).length;
+  if(!isSuper()){
+    const st=myStaff();
+    return header('My profile') + `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${st?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName||'')}</h2>${st?`<p>${esc(st.designation||'')} · ${esc(venueName(st.ground))}</p>`:'<p>Bangladesh Cricket Board</p>'}</div>
+    <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
+    <button class="account-signout" data-sign-out>${icon('logout')}Sign out</button>`;
+  }
   return header('My profile','Manage your personal information.') +
-    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${myStaff()?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>${myStaff()?`${esc(myStaff().designation||'')} · ${esc(venueName(myStaff().ground))}`:'Bangladesh Cricket Board'}</p>${p.photoIsReference?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
+    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${myStaff()?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>${myStaff()?`${esc(myStaff().designation||'')} · ${esc(venueName(myStaff().ground))}`:'Bangladesh Cricket Board'}</p>${false?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
     <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
     ${myStaff()?`<section class="account-section" aria-labelledby="account-staff-title"><h2 id="account-staff-title">My staff record</h2>${fieldTable(myStaff(),['Full name'])}<button class="textbtn" data-go="staff-profile" data-staff-id="${esc(myStaff().id)}">Open in Staff Members →</button></section>`:''}
     <section class="account-section" aria-labelledby="account-options-title"><h2 id="account-options-title">Your account</h2><div class="account-group">${isSuper()?accountMenuRow('team','Users & access','Invite people, set roles and venues','data-go="users"'):''}${accountMenuRow('activity','Activity log','View changes and recent actions','data-go="activity"')}${accountMenuRow('bell','Notification preferences',enabled===1?'All in-app updates':enabled?enabled+' update types on':'In-app updates paused','data-account-action="notifications"')}${accountMenuRow('shield','Workspace details','Your role, organisation and timezone','data-account-action="workspace"')}</div></section>

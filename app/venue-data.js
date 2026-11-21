@@ -40,14 +40,14 @@ function fieldValue(rec, label, value, type) {
   if (type === 'date') return fmtDay(value);
   if (type === 'phone') return `<a href="tel:${esc(value)}">${esc(value)}</a>`;
   if (type === 'email') return `<a href="mailto:${esc(value)}">${esc(value)}</a>`;
-  if (type === 'number') return Number(value).toLocaleString('en-GB');
+  if (type === 'number') return String(value);
   return esc(value);
 }
 function fieldTable(rec, skip = []) {
-  return `<dl class="data-fields">${(rec.fields || []).filter(([l]) => !skip.includes(l)).map(([label, value, type]) => {
+  return `<dl class="data-fields">${(rec.fields || []).filter(([l]) => !skip.includes(l) && !/^serial$/i.test(l)).map(([label, value, type]) => {
     const shown = fieldValue(rec, label, value, type);
     const note = /^notes?$/i.test(label) && shown != null ? (/repair|required|replace|damage|torn|broken|missing|not working/i.test(String(value)) ? 'note-alert' : 'note-ok') : '';
-    return `<div><dt>${esc(label)}</dt><dd class="${shown == null ? 'muted' : note}">${shown == null ? 'Not provided' : (type === 'phone' || type === 'email' || /^experience|^confirmation/i.test(label) ? shown : shown)}</dd></div>`;
+    return `<div><dt>${esc(label.replace(/\s*\(years\)\s*$/i, ''))}</dt><dd class="${shown == null ? 'muted' : note}">${shown == null ? 'Not provided' : (type === 'phone' || type === 'email' || /^experience|^confirmation/i.test(label) ? shown : shown)}</dd></div>`;
   }).join('')}</dl>`;
 }
 
@@ -105,7 +105,7 @@ document.addEventListener('scroll', e => {
 function clayUsed(rec) { return (rec.fields || []).filter(([l, v]) => /^(used in|given to)/i.test(l) && v != null && v !== '').reduce((s, [, v]) => s + Number(v || 0), 0); }
 function clayOpening(rec) { const f = (rec.fields || []).find(([l]) => /january|received/i.test(l)); return f && f[1] != null && f[1] !== '' ? Number(f[1]) : null; }
 function clayTone(pct) { return pct < 15 ? 'red' : pct < 35 ? 'orange' : pct < 60 ? 'yellow' : 'green'; }
-function clayNum(n) { return n == null ? '—' : Number(n).toLocaleString('en-GB'); }
+function clayNum(n) { return n == null ? '—' : String(Math.round(Number(n) * 100) / 100); }
 function venueClayCard(id, compact = false) {
   const rows = db.pitchClay.filter(r => Number(r.ground) === Number(id));
   if (!rows.length) return compact ? '' : `<section class="clay-card clay-card--empty">${clayHead('Pitch Clay', venueName(id))}<p>No Pitch Clay data for this venue yet.</p></section>`;
@@ -115,8 +115,8 @@ function venueClayCard(id, compact = false) {
   const openLabel = (rows[0].fields.find(([l]) => /january|received/i.test(l)) || ['January 2026'])[0].replace(/ quantity/i, '');
   const tag = compact ? 'button' : 'section';
   return `<${tag} class="clay-card" ${compact ? `data-go="clay" data-clay-venue="${id}" aria-label="Pitch Clay at ${esc(venueName(id))}: ${clayNum(present)} ${CLAY_UNIT} in stock"` : ''}>${clayHead('Pitch Clay', venueName(id))}
-    <div class="clay-figures"><div><strong>${clayNum(present)}</strong><span>${CLAY_UNIT} in stock now</span></div><div><strong>${clayNum(opening)}</strong><span>${esc(openLabel)}</span></div><div><strong>${clayNum(used)}</strong><span>${CLAY_UNIT} used / given</span></div></div>
-    ${opening ? (() => { const pct = Math.max(0, Math.min(100, present / opening * 100)); return `<div class="clay-bar" role="img" aria-label="${Math.round(pct)}% of stock left"><i class="clay-${clayTone(pct)}" style="width:${Math.max(pct, 2)}%"></i></div><p class="clay-left">${Math.round(pct)}% of ${esc(openLabel)} stock left</p>`; })() : ''}
+    <div class="clay-figures"><div><strong>${clayNum(present)} <em>${CLAY_UNIT}</em></strong><span>In stock now</span></div><div><strong>${clayNum(opening)} <em>${CLAY_UNIT}</em></strong><span>${esc(openLabel)} stock</span></div><div><strong>${clayNum(used)} <em>${CLAY_UNIT}</em></strong><span>Used / given</span></div></div>
+    ${opening ? (() => { const pct = Math.max(0, Math.min(100, present / opening * 100)); return `<div class="clay-bar" role="img" aria-label="${Math.round(pct)}% of stock left"><i class="clay-${clayTone(pct)}" style="width:${Math.max(pct, 2)}%"></i></div><p class="clay-left clay-left--${clayTone(pct)}"><strong>${Math.round(pct)}%</strong> of ${esc(openLabel)} stock left</p>`; })() : ''}
     ${mismatch ? `<p class="clay-warn">${icon('alert')}Doesn't add up: ${clayNum(opening)} − ${clayNum(used)} = ${clayNum(expected)}, but stock shows ${clayNum(present)} ${CLAY_UNIT}.</p>` : ''}
     ${compact ? `<span class="clay-more">See details ${icon('chevron')}</span>` : rows.map(r => `<h4 class="clay-sub">${esc(r.color || 'Clay')}</h4>${fieldTable(r)}${r.photos?.length ? photoCarousel(r.photos, 'Pitch clay') : ''}`).join('')}
   </${tag}>`;
@@ -148,13 +148,16 @@ function assetGroupsFor(list) {
 function assetsPage(embedded = false) {
   const venue = embedded ? state.ground : scopedVenue();
   const list = db.assets.filter(a => inScope(a, venue));
-  const repair = list.filter(a => assetCondTone(a.condition) === 'coral').length;
   const clay = venue === 'all' ? (visibleVenues().length === 1 ? venueClayCard(visibleVenues()[0].id, true) : nationalClayCard()) : venueClayCard(venue, true);
-  const top = embedded ? '' : header('Assets', venue === 'all' ? 'All venues' : venueName(venue)) + venuePicker('assets');
+  const top = embedded ? '' : header('Assets', `${venue === 'all' ? 'All venues' : venueName(venue)}${list.length ? ` · ${list.length} items` : ''}`) + venuePicker('assets');
   if (!list.length) return top + clay + empty('No assets yet', venue === 'all' ? 'Venue asset lists will appear here once imported.' : 'This venue\'s asset list hasn\'t been imported yet.');
-  const repairList = list.filter(a => assetCondTone(a.condition) === 'coral').sort((a, b) => Number(a.ground) - Number(b.ground) || a.serial - b.serial);
-  return top + clay + `<div class="summary-metrics">${summaryMetric(list.length, 'Asset items', 'box')}${summaryMetric(assetGroupsFor(list).length, 'Groups', 'box')}${summaryMetric(repair, 'Needs repair', 'alert', { tag: 'button', attributes: `data-repair-toggle aria-expanded="${!!state.assetRepairOpen}"` })}</div>` +
-    (state.assetRepairOpen && repairList.length ? `<section class="repair-list" aria-label="Items that need repair">${section(`Needs repair · ${repairList.length}`)}${repairList.map(a => assetRow(a, venue)).join('')}</section>` : '') +
+  const q = (state.search || '').trim().toLowerCase();
+  const search = `<div class="asset-search">${searchBox('Search assets')}</div>`;
+  if (q) {
+    const hits = list.filter(a => [a.name, a.group, a.brand, a.category, a.condition, ...(a.fields || []).map(f => f[1])].filter(v => v != null).join(' ').toLowerCase().includes(q));
+    return top + search + section(`${hits.length} result${hits.length === 1 ? '' : 's'}`) + (hits.length ? hits.map(a => assetRow(a, venue)).join('') : empty('No matching assets', 'Try another name, group or brand.'));
+  }
+  return top + clay + search + repairGroupCard(venue, embedded ? 'venue' : 'assets') +
     section('Asset groups') + `<div class="data-group-grid">${assetGroupsFor(list).map(([name, items]) => {
       const pic = [...items].sort((x, y) => x.serial - y.serial).find(a => a.photos?.length)?.photos[0], bad = items.filter(a => assetCondTone(a.condition) === 'coral').length;
       return `<button class="data-group" data-go="asset-group" data-asset-group="${esc(name)}" data-asset-venue="${venue}"><span class="data-group-pic">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy">` : icon('box')}</span><strong>${esc(name)}</strong><small>${items.length} item${items.length === 1 ? '' : 's'}${bad ? ` · <b class="coral-text">${bad} need repair</b>` : ''}</small></button>`;
@@ -164,12 +167,28 @@ function assetRow(a, venue) {
   return `<button class="list-row data-row" data-go="asset-item" data-asset-id="${esc(a.id)}"><span class="data-thumb">${a.photos?.length ? `<img src="${esc(a.photos[0])}" alt="" loading="lazy">` : icon('box')}</span><div class="grow"><strong>${esc(a.name)}</strong><small>${esc([a.qty != null ? `${clayNum(a.qty)} ${a.unit || ''}`.trim() : '', venue === 'all' ? venueName(a.ground) : '', a.brand].filter(Boolean).join(' · '))}</small>${a.condition ? `<div class="chips" style="margin-top:6px">${chip(a.condition, assetChipTone(a.condition))}</div>` : ''}${noteLine(a)}</div>${icon('chevron', 'chev')}</button>`;
 }
 function noteLine(a) { const n = (a.fields || []).find(([l]) => /^notes?$/i.test(l))?.[1]; return n ? `<small class="${/repair|required|replace|damage|torn|broken|missing|not working/i.test(n) ? 'note-alert' : 'note-ok'}">${esc(n)}</small>` : ''; }
+function repairItems(venue) { return db.assets.filter(a => inScope(a, venue) && assetCondTone(a.condition) === 'coral').sort((a, b) => Number(a.ground) - Number(b.ground) || a.serial - b.serial); }
+function repairGroupCard(venue, from = 'assets') {
+  const list = repairItems(venue);
+  const pics = list.filter(a => a.photos?.length).slice(0, 3).map(a => a.photos[0]);
+  return `<button class="repair-card" data-go="asset-repair" data-repair-venue="${venue}" data-repair-from="${from}" aria-label="${list.length} items need repair"><span class="repair-card-icon">${icon('alert')}</span><span class="grow"><strong>${list.length ? `${list.length} item${list.length === 1 ? '' : 's'} need repair` : 'Nothing needs repair'}</strong><small>${list.length ? 'Tap to see each item' : 'All recorded equipment is working'}</small></span>${pics.length ? `<span class="repair-card-pics">${pics.map(p => `<img src="${esc(p)}" alt="" loading="lazy">`).join('')}</span>` : ''}${icon('chevron', 'chev')}</button>`;
+}
 function venueRepairIssues(id) {
-  const list = db.assets.filter(a => Number(a.ground) === Number(id) && assetCondTone(a.condition) === 'coral').sort((a, b) => a.serial - b.serial);
   if (!db.assets.some(a => Number(a.ground) === Number(id))) return '';
-  const open = state.venueIssuesOpen === Number(id), shown = open ? list : list.slice(0, 3);
-  return section('Ground issues') + `<p class="venue-issues-sub">${list.length ? `${list.length} item${list.length === 1 ? '' : 's'} need repair` : 'No equipment needs repair at this venue.'}</p>` + shown.map(a => assetRow(a, id)).join('') +
-    (list.length > 3 ? `<button class="venue-issues-more" data-venue-issues="${id}">${open ? 'Show fewer' : `Show all ${list.length}`}</button>` : '');
+  return section('Ground issues') + repairGroupCard(Number(id), 'venue');
+}
+function assetRepairPage() {
+  const venue = state.repairVenue ?? 'all', list = repairItems(venue);
+  return header('Needs repair', `${list.length} item${list.length === 1 ? '' : 's'} · ${venue === 'all' ? 'All venues' : venueName(venue)}`) +
+    (list.length ? list.map(a => assetRow(a, venue)).join('') : empty('Nothing needs repair', 'All recorded equipment is working.'));
+}
+function issuesByVenuePage() {
+  const rows = grounds.map(g => ({ g, n: repairItems(g.id).length, has: db.assets.some(a => Number(a.ground) === g.id) }));
+  const withData = rows.filter(r => r.has).sort((a, b) => b.n - a.n || a.g.priority - b.g.priority), without = rows.filter(r => !r.has);
+  const total = withData.reduce((s, r) => s + r.n, 0);
+  return header('Issues', `${total} item${total === 1 ? '' : 's'} need repair across ${withData.filter(r => r.n).length} venue${withData.filter(r => r.n).length === 1 ? '' : 's'}`) +
+    (withData.length ? withData.map(({ g, n }) => `<button class="issue-venue" data-go="asset-repair" data-repair-venue="${g.id}" data-repair-from="issues"><span class="issue-venue-thumb">${mediaThumbnail('ground', g.id) || icon('ground')}</span><span class="grow"><strong>${esc(g.short)}</strong><small>${esc(g.city || '')}</small></span><span class="issue-venue-count ${n ? '' : 'ok'}">${n ? `${n} need repair` : 'All working'}</span>${icon('chevron', 'chev')}</button>`).join('') : empty('No issues yet', 'Venue repair items appear here once their asset lists are imported.')) +
+    (without.length ? `<p class="issue-venue-pending">${without.length} venue${without.length === 1 ? '' : 's'} haven't sent their asset list yet.</p>` : '');
 }
 function assetGroupPage() {
   const venue = state.assetVenue ?? scopedVenue(), name = state.assetGroup;
@@ -231,7 +250,7 @@ function venueDataSummary(id) {
 }
 
 /* ── Navigation wiring ─────────────────────────────────────────────── */
-const VENUE_DATA_SCREENS = { assets: () => assetsPage(), 'asset-group': assetGroupPage, 'asset-item': assetItemPage, clay: clayPage, staff: staffPage, 'staff-group': staffGroupPage, 'staff-profile': staffProfilePage };
+const VENUE_DATA_SCREENS = { 'asset-repair': assetRepairPage, assets: () => assetsPage(), 'asset-group': assetGroupPage, 'asset-item': assetItemPage, clay: clayPage, staff: staffPage, 'staff-group': staffGroupPage, 'staff-profile': staffProfilePage };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-photo-open]');
   if (el) {
@@ -251,7 +270,7 @@ document.addEventListener('click', e => {
   if (d.staffId) patch.staffId = d.staffId;
   if (d.clayVenue) patch.clayVenue = Number(d.clayVenue);
   if (d.dataVenue) patch.dataVenue = Number(d.dataVenue);
-  if (d.repairOpen) patch.assetRepairOpen = true;
+  if (d.repairVenue !== undefined) { patch.repairVenue = d.repairVenue === 'all' ? 'all' : Number(d.repairVenue); patch.repairFrom = d.repairFrom || 'assets'; }
   if (Object.keys(patch).length) Object.assign(state, patch);
 }, true);
 document.addEventListener('change', e => {
