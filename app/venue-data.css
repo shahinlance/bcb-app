@@ -135,3 +135,8 @@ button.summary-metric[data-repair-toggle][aria-expanded="true"]{outline:2px soli
 .venue-feature-alert{background:#fde9e4!important;color:#b5452f!important}
 .venue-feature-alert strong{color:#b5452f!important}
 .venue-issues-more{width:100%;margin:4px 0 0;padding:12px;border-radius:14px;border:1px dashed #e9a99f;background:#fff7f5;color:#b5452f;font:inherit;font-weight:600;cursor:pointer}
+/* Back bar stays reachable while scrolling */
+.appbody .backbar{position:sticky;top:0;z-index:20;background:var(--canvas);margin-left:-4px;margin-right:-4px;padding:10px 4px 8px}
+.summary-metrics--two{grid-template-columns:1fr 1fr!important}
+.client-tool-photo--illus img{object-fit:cover;background:#e7f2ea}
+.phone-footer button{flex:1}

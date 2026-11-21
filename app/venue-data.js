@@ -64,13 +64,23 @@ function openPhotoViewer(photos, start, alt) {
     <div class="photo-viewer-track" data-viewer-track>${photos.map((src, i) => `<div class="photo-viewer-slide"><img src="${esc(src)}" alt="${esc(alt)} — photo ${i + 1}"></div>`).join('')}</div>
     ${photos.length > 1 ? `<div class="photo-viewer-thumbs">${photos.map((src, i) => `<button data-viewer-thumb="${i}" class="${i === start ? 'on' : ''}" aria-label="Show photo ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}`;
   document.body.appendChild(v); document.body.classList.add('viewer-open');
+  try { history.pushState({ ...(history.state || {}), photoViewer: true }, ''); } catch { /* ignore */ }
   const track = v.querySelector('[data-viewer-track]');
   const sync = () => { const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); v.querySelector('.photo-viewer-count').textContent = `${i + 1} / ${photos.length}`; v.querySelectorAll('[data-viewer-thumb]').forEach((t, k) => t.classList.toggle('on', k === i)); };
   track.addEventListener('scroll', sync, { passive: true });
   requestAnimationFrame(() => { track.scrollLeft = start * track.clientWidth; sync(); });
   v.querySelector('[data-viewer-close]').focus();
 }
-function closePhotoViewer() { document.querySelector('.photo-viewer')?.remove(); document.body.classList.remove('viewer-open'); }
+function closePhotoViewer(fromHistory = false) {
+  if (!document.querySelector('.photo-viewer')) return;
+  if (!fromHistory && history.state?.photoViewer) { history.back(); return; } // popstate below finishes closing
+  document.querySelector('.photo-viewer')?.remove(); document.body.classList.remove('viewer-open');
+}
+/* Phone back gesture / browser Back closes the photo first, instead of leaving the page underneath */
+window.addEventListener('popstate', e => {
+  if (!document.querySelector('.photo-viewer')) return;
+  e.stopImmediatePropagation(); closePhotoViewer(true);
+}, true);
 document.addEventListener('keydown', e => {
   const v = document.querySelector('.photo-viewer'); if (!v) return;
   if (e.key === 'Escape') { e.stopImmediatePropagation(); closePhotoViewer(); }

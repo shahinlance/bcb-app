@@ -14,7 +14,7 @@ async function loadUserAccess() {
   userAccess.loading = true; userAccess.error = '';
   try {
     const [ps, av] = await Promise.all([
-      sb.from('profiles').select('id,email,full_name,role,is_active,created_at').order('created_at'),
+      sb.from('profiles').select('id,email,full_name,role,is_active,created_at,staff_id').order('created_at'),
       sb.from('admin_venues').select('user_id,venue_id')
     ]);
     if (ps.error) throw ps.error; if (av.error) throw av.error;
@@ -68,6 +68,8 @@ function userEditor(id) {
       <label class="field">Role<select name="role" ${me ? 'disabled' : ''}>${Object.entries(ROLE_LABEL).map(([k, t]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <p class="account-form-help" data-role-help>${ROLE_HELP[u.role]}</p>
       <div data-venue-picker ${['admin', 'venue_viewer'].includes(u.role) ? '' : 'hidden'}><p class="user-venue-title" data-venue-title>${u.role === 'venue_viewer' ? 'Venue this person can see' : 'Venues this Admin can update'}</p>${venueChecklist(u.venues)}</div>
+      <label class="field">Linked staff record<select name="staff"><option value="">Not linked</option>${[...(db.staff||[])].sort((a, b) => venueName(a.ground).localeCompare(venueName(b.ground)) || a.name.localeCompare(b.name)).map(p => `<option value="${esc(p.id)}" ${u.staff_id === p.id ? 'selected' : ''}>${esc(p.name)} — ${esc(p.designation || '')}, ${esc(venueName(p.ground))}</option>`).join('')}</select></label>
+      <p class="account-form-help">Shows this person's own photo and details in their profile.</p>
       <label class="check-row user-active"><input type="checkbox" name="active" ${u.is_active ? 'checked' : ''} ${me ? 'disabled' : ''}>Account active — can sign in and use the app</label>
       ${me ? '<p class="account-form-help">You can\'t change your own role or switch yourself off. Ask another Super Admin.</p>' : ''}
       <div class="form-error" role="alert"></div>
@@ -103,6 +105,12 @@ document.addEventListener('submit', async e => {
   btn.disabled = true;
   const { error } = await sb.rpc('admin_update_user', { target: id, new_role: role, new_active: active, new_name: name || null, venue_ids: ['admin', 'venue_viewer'].includes(role) ? venues : [] });
   if (error) { out.textContent = authMessage(error); btn.disabled = false; return; }
+  const staff = form.elements.staff?.value || '';
+  if (staff !== (u.staff_id || '')) {
+    const r = await sb.rpc('admin_link_staff', { target: id, staff });
+    if (r.error) { out.textContent = authMessage(r.error); btn.disabled = false; return; }
+    if (me) { BCB_USER.staffId = staff || null; if (staff) BCB_USER.name = db.staff.find(p => p.id === staff)?.name || BCB_USER.name; }
+  }
   closeModal(); toast('Access saved');
   if (me && name) BCB_USER.name = name;
   userAccess.list = null; render();

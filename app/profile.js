@@ -5,9 +5,11 @@ const accountFields = {
   email: {label:'Email address', type:'email', autocomplete:'email', maximum:254},
   phone: {label:'Phone number', type:'tel', autocomplete:'tel', maximum:30}
 };
+function myStaff(){const id=window.BCB_USER?.staffId;return id?(db.staff||[]).find(p=>p.id===id)||null:null;}
 function accountProfile() {
-  const u=window.BCB_USER;
-  return {fullName:u?.name||'', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile, ...(u?{email:u.email}:{}), ...(u?.name?{fullName:u.name}:{})};
+  const u=window.BCB_USER, st=myStaff();
+  const fromStaff=st?{fullName:st.name, ...(st.photo?{photo:st.photo, photoIsReference:false}:{}), phone:(st.fields||[]).find(f=>/mobile/i.test(f[0]))?.[1]||''}:{};
+  return {fullName:u?.name||'', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile, ...(u?{email:u.email}:{}), ...(u?.name?{fullName:u.name}:{}), ...fromStaff};
 }
 function accountPreference(key) { return accountProfile().notifications?.[key] !== false; }
 function accountNotificationCount(){return accountPreference('approvals')?db.requests.filter(r=>r.status==='Submitted').length:0;}
@@ -26,8 +28,9 @@ function accountMenuRow(symbol,title,subtitle,attr) {
 function accountProfilePage() {
   const p=accountProfile(), enabled=['approvals'].filter(accountPreference).length;
   return header('My profile','Manage your personal information.') +
-    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button></div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>Bangladesh Cricket Board</p>${p.photoIsReference?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
+    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${myStaff()?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>${myStaff()?`${esc(myStaff().designation||'')} · ${esc(venueName(myStaff().ground))}`:'Bangladesh Cricket Board'}</p>${p.photoIsReference?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
     <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
+    ${myStaff()?`<section class="account-section" aria-labelledby="account-staff-title"><h2 id="account-staff-title">My staff record</h2>${fieldTable(myStaff(),['Full name'])}<button class="textbtn" data-go="staff-profile" data-staff-id="${esc(myStaff().id)}">Open in Staff Members →</button></section>`:''}
     <section class="account-section" aria-labelledby="account-options-title"><h2 id="account-options-title">Your account</h2><div class="account-group">${isSuper()?accountMenuRow('team','Users & access','Invite people, set roles and venues','data-go="users"'):''}${accountMenuRow('activity','Activity log','View changes and recent actions','data-go="activity"')}${accountMenuRow('bell','Notification preferences',enabled===1?'All in-app updates':enabled?enabled+' update types on':'In-app updates paused','data-account-action="notifications"')}${accountMenuRow('shield','Workspace details','Your role, organisation and timezone','data-account-action="workspace"')}</div></section>
     <button class="account-about" data-account-action="about">About BCB Grounds${icon('chevron')}</button>
     <button class="account-signout" data-sign-out>${icon('logout')}Sign out</button>`;
