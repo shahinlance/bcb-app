@@ -29,3 +29,4 @@ Rented venues (09–22) have no folders yet.
 |---|---|---|---|
 | 2026-11-20 | — | Folders set up, all empty | — |
 | 2026-11-21 | 02 Chattogram (imported) | 36 assets, 1 Pitch Clay, 25 grounds team, 9 office team, 92 photos | Photos in `app/media/ctg/`. Open sheet issues: clay 2600−2600≠150; #19 no group; #24 no photo; 5 confirmation-before-joining dates (Office #1, #3, #8; Grounds #6, #9); Office #9 NID 12 digits; same mobile for GT #12/#19 |
+| 2026-11-21 | 02 Chattogram (re-sync) | 16 records updated: clay January 2,750 (now adds up), #19 group Sharpner, confirmation dates corrected, GT #19 new mobile | Kept as decided: #24 no photo yet; Office #9 NID as given; Office #3 blood group blank. Importer now also reads dates written as words ("1 July 2024"). |

@@ -59,7 +59,11 @@ def to_date(v, label, who):
     if v in (None, ''): return None
     if isinstance(v, (datetime.datetime, datetime.date)):
         return v.strftime('%Y-%m-%d')
-    m = re.match(r'^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$', str(v).strip())
+    t = str(v).strip()
+    for fmt in ('%d %B %Y', '%d %b %Y', '%B %d %Y', '%d-%b-%Y', '%d %B, %Y'):
+        try: return datetime.datetime.strptime(t.replace(',', ', ').replace('  ', ' ') if ',' in fmt else t, fmt).strftime('%Y-%m-%d')
+        except ValueError: pass
+    m = re.match(r'^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$', t)
     if not m: problems.append(f'{who}: {label} "{v}" is not a date'); return str(v)
     d, mo, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
     if mo > 12 and d <= 12: d, mo = mo, d  # day/month written the other way round
