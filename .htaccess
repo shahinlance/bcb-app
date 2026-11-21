@@ -9,7 +9,7 @@ RewriteEngine On
 
 # Keep project files private: only the app is public.
 RewriteRule ^(\.git|docs|supabase|scripts)(/.*)?$ - [F,L]
-RewriteRule ^(README\.md|package\.json|\.gitignore|\.htaccess)$ - [F,L]
+RewriteRule ^(README\.md|CLAUDE\.md|package\.json|\.gitignore|\.htaccess)$ - [F,L]
 
 # Serve app/ at the site root
 RewriteCond %{REQUEST_URI} !^/app/
