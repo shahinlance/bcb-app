@@ -40,7 +40,7 @@ function usersAccessPage() {
   if (!isSuper()) return header('Users & access') + empty('Super Admins only', 'Ask a Super Admin to change user access.');
   if (!userAccess.list && !userAccess.loading && !userAccess.error) loadUserAccess();
   const top = header('Users & access', 'Who can sign in, and what they can do.') +
-    `<div class="card soft user-invite"><h3>Add a person</h3><p>In Supabase, open <strong>Authentication → Users → Invite user</strong> and enter their email. They'll appear below as <em>Not active</em> — open them to set their role and venues.</p><button class="button secondary small" data-users-refresh>${icon('refresh')}Refresh list</button></div>`;
+    `<div class="card soft user-invite"><h3>Add a person</h3><p>Enter their details and send an invite. They get an email, choose their own password, and find their name and photo ready.</p><div class="user-invite-actions"><button class="button small" data-user-invite>${icon('plus')}Invite a person</button><button class="button secondary small" data-users-refresh>${icon('refresh')}Refresh</button></div></div>`;
   if (userAccess.error) return top + `<div class="card"><h3>Couldn't load users</h3><p>${esc(userAccess.error)}</p><button class="button secondary" data-users-refresh>Try again</button></div>`;
   if (!userAccess.list) return top + '<p class="sub" style="padding:16px 4px">Loading users…</p>';
   const L = userAccess.list, groupsOf = [
@@ -59,6 +59,32 @@ function venueChecklist(selected) {
   return block('BCB grounds', sorted.filter(g => g.venueType === 'BCB ground')) + block('Rented venues', sorted.filter(g => g.venueType !== 'BCB ground'));
 }
 
+let invitePhoto = '';
+function smallPhoto(file) {
+  return resizePhoto(file).then(src => new Promise((resolve, reject) => {
+    const im = new Image(); im.onerror = () => reject(Error('This image could not be opened.'));
+    im.onload = () => { const side = Math.min(im.width, im.height), c = document.createElement('canvas'); c.width = c.height = Math.min(480, side);
+      c.getContext('2d').drawImage(im, (im.width - side) / 2, (im.height - side) / 2, side, side, 0, 0, c.width, c.height); resolve(c.toDataURL('image/jpeg', .85)); };
+    im.src = src;
+  }));
+}
+function inviteForm() {
+  invitePhoto = '';
+  accountSheet(`<h3>Invite a person</h3><p class="account-form-help">They'll get an email from BCB Grounds to set their own password.</p>
+    <form data-invite-form novalidate>
+      <div class="invite-photo"><span class="invite-photo-preview" data-invite-preview>${icon('user')}</span><label class="button secondary small">${icon('photo')}Add photo<input type="file" accept="image/jpeg,image/png,image/webp" data-invite-photo hidden></label></div>
+      <label class="field">Full name<input name="full_name" maxlength="80" autocomplete="off" required></label>
+      <label class="field">Email<input name="email" type="email" maxlength="254" autocomplete="off" required></label>
+      <label class="field">Phone<input name="phone" type="tel" maxlength="30" autocomplete="off"></label>
+      <label class="field">Designation<input name="designation" maxlength="80" placeholder="e.g. Chairman" autocomplete="off"></label>
+      <label class="field">Role<select name="role">${Object.entries(ROLE_LABEL).map(([k, t]) => `<option value="${k}" ${k === 'visitor' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <p class="account-form-help" data-role-help>${ROLE_HELP.visitor}</p>
+      <div data-venue-picker hidden><p class="user-venue-title" data-venue-title>Venues this Admin can update</p>${venueChecklist([])}</div>
+      <div class="account-form-error" role="alert"></div>
+      <button class="button" type="submit">Send invite</button>
+    </form>`);
+}
+
 function userEditor(id) {
   const u = userAccess.list?.find(x => x.id === id); if (!u) return;
   const me = u.id === BCB_USER?.id;
@@ -72,13 +98,20 @@ function userEditor(id) {
       <p class="account-form-help">Shows this person's own photo and details in their profile.</p>
       <label class="check-row user-active"><input type="checkbox" name="active" ${u.is_active ? 'checked' : ''} ${me ? 'disabled' : ''}>Account active — can sign in and use the app</label>
       ${me ? '<p class="account-form-help">You can\'t change your own role or switch yourself off. Ask another Super Admin.</p>' : ''}
-      <div class="form-error" role="alert"></div>
+      <div class="account-form-error" role="alert"></div>
       <button class="button" type="submit">Save access</button>
     </form>`);
 }
 
 document.addEventListener('change', e => {
-  const form = e.target.closest('[data-users-form]'); if (!form || e.target.name !== 'role') return;
+  if (e.target.matches('[data-invite-photo]')) {
+    const out = e.target.closest('form').querySelector('[role=alert]'), prev = document.querySelector('[data-invite-preview]');
+    out.textContent = 'Preparing photo…';
+    smallPhoto(e.target.files[0]).then(src => { invitePhoto = src || ''; out.textContent = ''; if (src) prev.innerHTML = `<img src="${src}" alt="">`; })
+      .catch(err => { out.textContent = err.message; });
+    return;
+  }
+  const form = e.target.closest('[data-users-form],[data-invite-form]'); if (!form || e.target.name !== 'role') return;
   form.querySelector('[data-venue-picker]').hidden = !['admin', 'venue_viewer'].includes(e.target.value);
   form.querySelector('[data-venue-title]').textContent = e.target.value === 'venue_viewer' ? 'Venue this person can see' : 'Venues this Admin can update';
   form.querySelector('[data-role-help]').textContent = ROLE_HELP[e.target.value];
@@ -87,9 +120,30 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.userEdit) { userEditor(b.dataset.userEdit); return; }
+  if (b.dataset.userInvite !== undefined) { inviteForm(); return; }
   if (b.dataset.usersRefresh !== undefined) { userAccess.list = null; userAccess.error = ''; render(); return; }
   if (b.dataset.signOut !== undefined) { bcbSignOut(); return; }
 });
+
+document.addEventListener('submit', async e => {
+  const form = e.target; if (form.dataset.inviteForm === undefined) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const f = form.elements, out = form.querySelector('[role=alert]'), btn = form.querySelector('[type=submit]');
+  const body = { full_name: f.full_name.value.trim(), email: f.email.value.trim(), phone: f.phone.value.trim(), designation: f.designation.value.trim(), role: f.role.value,
+    venues: [...form.querySelectorAll('input[name=venue]:checked')].map(i => +i.value), photo: invitePhoto };
+  out.textContent = '';
+  if (body.full_name.length < 2) { out.textContent = "Enter the person's full name."; return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) { out.textContent = 'Enter a valid email address.'; return; }
+  if (['admin', 'venue_viewer'].includes(body.role) && !body.venues.length) { out.textContent = 'Choose at least one venue.'; return; }
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const { data, error } = await sb.functions.invoke('invite-user', { body });
+    let msg = data?.error;
+    if (error) { try { msg = (await error.context.json()).error; } catch { msg = msg || authMessage(error); } }
+    if (msg) throw Error(msg);
+    closeModal(); toast(`Invite sent to ${body.email}`); userAccess.list = null; render();
+  } catch (err) { out.textContent = err.message; btn.disabled = false; btn.textContent = 'Send invite'; }
+}, true);
 
 document.addEventListener('submit', async e => {
   const form = e.target, id = form.dataset.usersForm; if (!id) return;

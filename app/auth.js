@@ -94,7 +94,7 @@ async function loadUserAndStart() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return authScreen('login');
     const uid = session.user.id;
-    const { data: p, error } = await sb.from('profiles').select('id,email,full_name,role,is_active,staff_id').eq('id', uid).maybeSingle();
+    const { data: p, error } = await sb.from('profiles').select('id,email,full_name,role,is_active,staff_id,phone,designation,photo').eq('id', uid).maybeSingle();
     if (error) throw error;
     if (!p || !p.is_active) return authScreen('pending', { email: session.user.email });
     let venues = [];
@@ -103,7 +103,7 @@ async function loadUserAndStart() {
       if (e2) throw e2;
       venues = (v || []).map(x => x.venue_id);
     }
-    window.BCB_USER = { id: uid, email: p.email, name: p.full_name || '', role: p.role, appRole: ROLE_LABEL[p.role], venues, staffId: p.staff_id || null };
+    window.BCB_USER = { id: uid, email: p.email, name: p.full_name || '', role: p.role, appRole: ROLE_LABEL[p.role], venues, staffId: p.staff_id || null, phone: p.phone || '', designation: p.designation || '', photo: p.photo || '' };
     state.role = BCB_USER.appRole;
     if (p.role === 'venue_viewer') grounds.splice(0, grounds.length, ...grounds.filter(g => venues.includes(g.id)));
     document.querySelector('#auth .auth-sub').textContent = 'Loading grounds data…';

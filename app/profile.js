@@ -9,7 +9,7 @@ function myStaff(){const id=window.BCB_USER?.staffId;return id?(db.staff||[]).fi
 function accountProfile() {
   const u=window.BCB_USER, st=myStaff();
   const fromStaff=st?{fullName:st.name, ...(st.photo?{photo:st.photo, photoIsReference:false}:{}), phone:(st.fields||[]).find(f=>/mobile/i.test(f[0]))?.[1]||''}:{};
-  return {fullName:u?.name||'', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile, ...(u?{email:u.email}:{}), ...(u?.name?{fullName:u.name}:{}), ...fromStaff};
+  return {fullName:u?.name||'', email:'', phone:'', photo:'assets/profile-reference.jpg', photoIsReference:true, ...db.accountProfile, ...(u?{email:u.email}:{}), ...(u?.name?{fullName:u.name}:{}), ...(u?.phone?{phone:u.phone}:{}), ...(u?.designation?{designation:u.designation}:{}), ...(u?.photo?{photo:u.photo,photoIsReference:false}:{}), ...fromStaff};
 }
 function accountPreference(key) { return accountProfile().notifications?.[key] !== false; }
 function accountNotificationCount(){return accountPreference('approvals')?db.requests.filter(r=>r.status==='Submitted').length:0;}
@@ -30,12 +30,12 @@ function accountProfilePage() {
   const p=accountProfile(), enabled=['approvals'].filter(accountPreference).length;
   if(!isSuper()){
     const st=myStaff();
-    return header('My profile') + `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${st?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName||'')}</h2>${st?`<p>${esc(st.designation||'')} · ${esc(venueName(st.ground))}</p>`:'<p>Bangladesh Cricket Board</p>'}</div>
+    return header('My profile') + `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${st?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName||'')}</h2>${st?`<p>${esc(st.designation||'')} · ${esc(venueName(st.ground))}</p>`:`<p>${p.designation?esc(p.designation)+' · ':''}Bangladesh Cricket Board</p>`}</div>
     <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
     <button class="account-signout" data-sign-out>${icon('logout')}Sign out</button>`;
   }
   return header('My profile','Manage your personal information.') +
-    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${myStaff()?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>${myStaff()?`${esc(myStaff().designation||'')} · ${esc(venueName(myStaff().ground))}`:'Bangladesh Cricket Board'}</p>${false?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
+    `<div class="account-profile-hero"><div class="account-portrait">${accountAvatar()}${myStaff()?'':`<button class="account-photo-change" data-account-action="photo" aria-label="Change profile photo">${icon('photo')}</button>`}</div><h2>${esc(p.fullName)}</h2><span class="account-role">${icon('shield')}${esc(window.BCB_USER?.appRole||state.role)}</span><p>${myStaff()?`${esc(myStaff().designation||'')} · ${esc(venueName(myStaff().ground))}`:`${p.designation?esc(p.designation)+' · ':''}Bangladesh Cricket Board`}</p>${false?'<small class="account-reference-note">Demo portrait · Upload your own photo</small>':''}</div>
     <section class="account-section" aria-labelledby="account-details-title"><h2 id="account-details-title">Personal information</h2><div class="account-group">${Object.keys(accountFields).map(accountDetailRow).join('')}</div></section>
     ${myStaff()?`<section class="account-section" aria-labelledby="account-staff-title"><h2 id="account-staff-title">My staff record</h2>${fieldTable(myStaff(),['Full name'])}<button class="textbtn" data-go="staff-profile" data-staff-id="${esc(myStaff().id)}">Open in Staff Members →</button></section>`:''}
     <section class="account-section" aria-labelledby="account-options-title"><h2 id="account-options-title">Your account</h2><div class="account-group">${isSuper()?accountMenuRow('team','Users & access','Invite people, set roles and venues','data-go="users"'):''}${accountMenuRow('activity','Activity log','View changes and recent actions','data-go="activity"')}${accountMenuRow('bell','Notification preferences',enabled===1?'All in-app updates':enabled?enabled+' update types on':'In-app updates paused','data-account-action="notifications"')}${accountMenuRow('shield','Workspace details','Your role, organisation and timezone','data-account-action="workspace"')}</div></section>
@@ -161,9 +161,24 @@ document.addEventListener('submit',e=>{
         }).catch(err=>{submit.disabled=false;accountFormError(form,authMessage(err));});
         return;
       }
+      if(key==='phone'&&window.BCB_USER&&typeof sb!=='undefined'&&sb){
+        sb.rpc('update_my_contact',{new_phone:value||''}).then(({error})=>{
+          if(error){submit.disabled=false;return accountFormError(form,authMessage(error));}
+          BCB_USER.phone=value;saveAccount({[key]:value},'Profile updated','Phone number changed');
+        }).catch(err=>{submit.disabled=false;accountFormError(form,authMessage(err));});
+        return;
+      }
       saveAccount({[key]:value},'Profile updated',accountFields[key].label+' changed');
     } else if(type==='photo'){
-      saveAccount({photo:accountCroppedPhoto(),photoIsReference:false},'Profile photo updated','Your profile');accountPhotoDraft=null;
+      const photo=accountCroppedPhoto();
+      if(window.BCB_USER&&typeof sb!=='undefined'&&sb){
+        sb.rpc('update_my_contact',{new_photo:photo}).then(({error})=>{
+          if(error){submit.disabled=false;return accountFormError(form,authMessage(error));}
+          BCB_USER.photo=photo;accountPhotoDraft=null;saveAccount({photo,photoIsReference:false},'Profile photo updated','Your profile');
+        }).catch(err=>{submit.disabled=false;accountFormError(form,authMessage(err));});
+        return;
+      }
+      saveAccount({photo,photoIsReference:false},'Profile photo updated','Your profile');accountPhotoDraft=null;
     } else if(type==='notifications'){
       const data=new FormData(form),notifications=Object.fromEntries(['overdue','approvals','reviews'].map(key=>[key,data.get(key)==='on']));
       if(Object.entries(notifications).every(([key,value])=>accountPreference(key)===value)){closeModal();toast('No changes to save');return;}
