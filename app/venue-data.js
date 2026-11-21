@@ -146,7 +146,7 @@ function assetsPage(embedded = false) {
   return top + clay + `<div class="summary-metrics">${summaryMetric(list.length, 'Asset items', 'box')}${summaryMetric(assetGroupsFor(list).length, 'Groups', 'box')}${summaryMetric(repair, 'Needs repair', 'alert', { tag: 'button', attributes: `data-repair-toggle aria-expanded="${!!state.assetRepairOpen}"` })}</div>` +
     (state.assetRepairOpen && repairList.length ? `<section class="repair-list" aria-label="Items that need repair">${section(`Needs repair · ${repairList.length}`)}${repairList.map(a => assetRow(a, venue)).join('')}</section>` : '') +
     section('Asset groups') + `<div class="data-group-grid">${assetGroupsFor(list).map(([name, items]) => {
-      const pic = items.find(a => a.photos?.length)?.photos[0], bad = items.filter(a => assetCondTone(a.condition) === 'coral').length;
+      const pic = [...items].sort((x, y) => x.serial - y.serial).find(a => a.photos?.length)?.photos[0], bad = items.filter(a => assetCondTone(a.condition) === 'coral').length;
       return `<button class="data-group" data-go="asset-group" data-asset-group="${esc(name)}" data-asset-venue="${venue}"><span class="data-group-pic">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy">` : icon('box')}</span><strong>${esc(name)}</strong><small>${items.length} item${items.length === 1 ? '' : 's'}${bad ? ` · <b class="coral-text">${bad} need repair</b>` : ''}</small></button>`;
     }).join('')}</div>`;
 }
@@ -157,7 +157,9 @@ function noteLine(a) { const n = (a.fields || []).find(([l]) => /^notes?$/i.test
 function venueRepairIssues(id) {
   const list = db.assets.filter(a => Number(a.ground) === Number(id) && assetCondTone(a.condition) === 'coral').sort((a, b) => a.serial - b.serial);
   if (!db.assets.some(a => Number(a.ground) === Number(id))) return '';
-  return section(`Needs repair · ${list.length}`) + (list.length ? list.map(a => assetRow(a, id)).join('') : '<p class="sub">No equipment needs repair at this venue.</p>');
+  const open = state.venueIssuesOpen === Number(id), shown = open ? list : list.slice(0, 3);
+  return section('Ground issues') + `<p class="venue-issues-sub">${list.length ? `${list.length} item${list.length === 1 ? '' : 's'} need repair` : 'No equipment needs repair at this venue.'}</p>` + shown.map(a => assetRow(a, id)).join('') +
+    (list.length > 3 ? `<button class="venue-issues-more" data-venue-issues="${id}">${open ? 'Show fewer' : `Show all ${list.length}`}</button>` : '');
 }
 function assetGroupPage() {
   const venue = state.assetVenue ?? scopedVenue(), name = state.assetGroup;
@@ -180,7 +182,7 @@ function staffPage(embedded = false) {
   const top = embedded ? '' : header('Staff Members', venue === 'all' ? 'All venues' : venueName(venue)) + venuePicker('staff');
   if (!list.length) return top + empty('No staff yet', 'Staff lists will appear here once each venue\'s sheet is imported.');
   return top + `<div class="summary-metrics">${summaryMetric(list.length, 'Staff', 'team')}${STAFF_TEAMS.map(t => summaryMetric(list.filter(p => p.team === t).length, t, 'team')).join('')}</div>` +
-    STAFF_TEAMS.map(t => { const ps = list.filter(p => p.team === t); return `<button class="data-team" data-go="staff-group" data-staff-team="${t}" data-staff-venue="${venue}"><div class="data-team-faces">${ps.slice(0, 5).map(p => staffAvatar(p)).join('')}</div><div class="grow"><strong>${t}</strong><small>${ps.length} member${ps.length === 1 ? '' : 's'}${venue === 'all' ? ` · ${new Set(ps.map(p => p.ground)).size} venue(s)` : ''}</small></div>${icon('chevron', 'chev')}</button>`; }).join('');
+    STAFF_TEAMS.map(t => { const ps = list.filter(p => p.team === t); return `<button class="data-team" data-go="staff-group" data-staff-team="${t}" data-staff-venue="${venue}"><div class="data-team-faces">${[...ps].sort((x, y) => x.serial - y.serial).slice(0, 5).map(p => staffAvatar(p)).join('')}</div><div class="grow"><strong>${t}</strong><small>${ps.length} member${ps.length === 1 ? '' : 's'}${venue === 'all' ? ` · ${new Set(ps.map(p => p.ground)).size} venue(s)` : ''}</small></div>${icon('chevron', 'chev')}</button>`; }).join('');
 }
 function staffGroupPage() {
   const venue = state.staffVenue ?? scopedVenue(), team = state.staffTeam;
@@ -198,11 +200,24 @@ function staffProfilePage() {
 
 /* ── Venue page additions ──────────────────────────────────────────── */
 function venueDataSummary(id) {
-  const a = db.assets.filter(x => Number(x.ground) === id), s = db.staff.filter(x => Number(x.ground) === id);
-  if (!a.length && !s.length && !db.pitchClay.some(x => Number(x.ground) === id)) return '';
-  return `<section class="venue-data-summary">${venueClayCard(id, true)}<div class="data-venue-links">
-    <button class="list-row" data-go="assets" data-data-venue="${id}"><div class="symbol">${icon('box')}</div><div class="grow"><strong>Assets</strong><small>${a.length} items · ${a.filter(x => assetCondTone(x.condition) === 'coral').length} need repair</small></div>${icon('chevron', 'chev')}</button>
-    <button class="list-row" data-go="staff" data-data-venue="${id}"><div class="symbol">${icon('team')}</div><div class="grow"><strong>Staff Members</strong><small>${STAFF_TEAMS.map(t => `${s.filter(x => x.team === t).length} ${t.replace(' Team', '').toLowerCase()}`).join(' · ')}</small></div>${icon('chevron', 'chev')}</button></div></section>`;
+  const a = db.assets.filter(x => Number(x.ground) === id).sort((x, y) => x.serial - y.serial);
+  const s = db.staff.filter(x => Number(x.ground) === id).sort((x, y) => STAFF_TEAMS.indexOf(x.team) - STAFF_TEAMS.indexOf(y.team) || x.serial - y.serial);
+  const clay = venueClayCard(id, true);
+  if (!a.length && !s.length && !clay) return '';
+  const repair = a.filter(x => assetCondTone(x.condition) === 'coral').length;
+  const pics = a.filter(x => x.photos?.length).slice(0, 4).map(x => x.photos[0]);
+  const team = t => s.filter(x => x.team === t).length;
+  return `<section class="venue-data-summary">${clay}
+    <button class="venue-feature venue-feature--assets" data-go="ground-assets" aria-label="Assets at this venue: ${a.length} items, ${repair} need repair">
+      <div class="venue-feature-pics">${pics.length ? pics.map(p => `<img src="${esc(p)}" alt="" loading="lazy">`).join('') : `<span class="venue-feature-empty">${icon('box')}</span>`}</div>
+      <div class="venue-feature-body"><div class="venue-feature-title">${icon('box')}<h3>Assets</h3>${icon('chevron', 'chev')}</div>
+        <div class="venue-feature-stats"><span><strong>${a.length}</strong> items</span><span><strong>${assetGroupsFor(a).length}</strong> groups</span>${repair ? `<span class="venue-feature-alert"><strong>${repair}</strong> need repair</span>` : ''}</div></div>
+    </button>
+    <button class="venue-feature venue-feature--staff" data-go="ground-staff" aria-label="Staff at this venue: ${s.length} people">
+      <div class="venue-feature-faces">${s.slice(0, 7).map(p => staffAvatar(p)).join('')}${s.length > 7 ? `<span class="staff-avatar staff-avatar--initials">+${s.length - 7}</span>` : ''}</div>
+      <div class="venue-feature-body"><div class="venue-feature-title">${icon('team')}<h3>Staff Members</h3>${icon('chevron', 'chev')}</div>
+        <div class="venue-feature-stats"><span><strong>${s.length}</strong> people</span><span><strong>${team('Office Team')}</strong> office</span><span><strong>${team('Grounds Team')}</strong> grounds</span></div></div>
+    </button></section>`;
 }
 
 /* ── Navigation wiring ─────────────────────────────────────────────── */
@@ -214,6 +229,8 @@ document.addEventListener('click', e => {
     const imgs = [...el.closest('[data-carousel]').querySelectorAll('img')].map(i => i.getAttribute('src'));
     openPhotoViewer(imgs, +el.dataset.photoOpen, el.querySelector('img')?.alt || 'Photo'); return;
   }
+  const vi = e.target.closest('[data-venue-issues]');
+  if (vi) { e.stopImmediatePropagation(); state.venueIssuesOpen = state.venueIssuesOpen === Number(vi.dataset.venueIssues) ? null : Number(vi.dataset.venueIssues); render(); return; }
   const rt = e.target.closest('[data-repair-toggle]');
   if (rt) { e.stopImmediatePropagation(); state.assetRepairOpen = !state.assetRepairOpen; render(); if (state.assetRepairOpen) requestAnimationFrame(() => document.querySelector('.repair-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); return; }
   const b = e.target.closest('[data-go]'); if (!b) return;

@@ -111,3 +111,27 @@ button.summary-metric[data-repair-toggle][aria-expanded="true"]{outline:2px soli
 .venue-tabs button svg{width:22px;height:22px;color:var(--green)}
 .venue-tabs button.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 6px 16px #08674733}
 .venue-tabs button.active svg{color:#fff}
+/* Venue overview feature cards */
+.venue-issues-sub{color:#b5452f;font-weight:600;margin:-6px 0 10px}
+.venue-data-summary{display:grid;gap:14px;margin:22px 0 28px}
+.venue-data-summary .clay-card{margin:0}
+.venue-feature{display:block;width:100%;text-align:left;font:inherit;color:inherit;background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;padding:0;box-shadow:0 8px 22px #1b3b2a14;cursor:pointer}
+.venue-feature:active{transform:scale(.99)}
+.venue-feature-pics{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:120px;gap:2px;height:120px;overflow:hidden;background:var(--green-soft)}
+.venue-feature-pics img{min-height:0}
+.venue-feature-pics img{width:100%;height:100%;object-fit:cover}
+.venue-feature-empty{grid-column:1/-1;display:grid;place-items:center;color:var(--green)}
+.venue-feature-faces{display:flex;align-items:center;padding:18px 16px 4px;background:linear-gradient(160deg,#e8f3ec,#fff)}
+.venue-feature-faces .staff-avatar{width:46px;height:46px;margin-left:-10px;border:3px solid #fff;font-size:13px}
+.venue-feature-faces .staff-avatar:first-child{margin-left:0}
+.venue-feature-body{padding:14px 16px 16px}
+.venue-feature-title{display:flex;align-items:center;gap:10px}
+.venue-feature-title>svg:first-child{width:24px;height:24px;color:var(--green)}
+.venue-feature-title h3{margin:0;font-size:20px;letter-spacing:-.4px;flex:1}
+.venue-feature-title .chev{width:18px;height:18px;color:var(--muted)}
+.venue-feature-stats{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.venue-feature-stats span{background:#f2f6f3;border-radius:999px;padding:5px 11px;font-size:13px;color:var(--muted)}
+.venue-feature-stats strong{color:var(--ink);font-size:15px;margin-right:2px}
+.venue-feature-alert{background:#fde9e4!important;color:#b5452f!important}
+.venue-feature-alert strong{color:#b5452f!important}
+.venue-issues-more{width:100%;margin:4px 0 0;padding:12px;border-radius:14px;border:1px dashed #e9a99f;background:#fff7f5;color:#b5452f;font:inherit;font-weight:600;cursor:pointer}
