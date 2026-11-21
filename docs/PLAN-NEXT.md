@@ -20,6 +20,8 @@
 ## Staff Members
 - One tab with two groups, Office Team and Grounds Team. Member cards open a full profile with every sheet field (NID, blood group, etc. are fine to show; it's a closed group).
 - Normalise mobile numbers and list the odd ones.
+- **Experience** is not taken from the sheet. The app calculates it from the Joining Date to today and shows it as "18 years", so it stays current every year. If the joining date is missing, show "Not provided".
+- **Confirmation Date** is empty for Mastertoll and Contractual staff, because they can't become permanent. Show "Not applicable" for those job statuses, not "missing", and don't flag it as a data problem.
 
 ## Access (launch / test phase)
 - **New role: Venue viewer.** One login per venue. They see only their own venue's data and are read-only. This must be enforced in the database (RLS on records select by venue).
