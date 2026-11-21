@@ -1,7 +1,7 @@
 /* BCB Grounds · sign-in, invite/reset links, and the signed-in user's role.
    Access is invite-only. Real permission checks live in the database (row-level security);
    the role here only decides what the app shows. */
-const ROLE_LABEL = { visitor: 'Visitor', super_admin: 'Super Admin', admin: 'Admin' };
+const ROLE_LABEL = { visitor: 'Visitor', venue_viewer: 'Venue viewer', admin: 'Admin', super_admin: 'Super Admin' };
 window.BCB_USER = null;
 
 /* Read invite / reset link details before anything else touches the URL. */
@@ -98,13 +98,14 @@ async function loadUserAndStart() {
     if (error) throw error;
     if (!p || !p.is_active) return authScreen('pending', { email: session.user.email });
     let venues = [];
-    if (p.role === 'admin') {
+    if (p.role === 'admin' || p.role === 'venue_viewer') {
       const { data: v, error: e2 } = await sb.from('admin_venues').select('venue_id').eq('user_id', uid);
       if (e2) throw e2;
       venues = (v || []).map(x => x.venue_id);
     }
     window.BCB_USER = { id: uid, email: p.email, name: p.full_name || '', role: p.role, appRole: ROLE_LABEL[p.role], venues };
     state.role = BCB_USER.appRole;
+    if (p.role === 'venue_viewer') grounds.splice(0, grounds.length, ...grounds.filter(g => venues.includes(g.id)));
     document.querySelector('#auth .auth-sub').textContent = 'Loading grounds data…';
     await authStart();
     authHide();

@@ -3,7 +3,7 @@
    Supabase (table `records`), and every persist() sends only the records that changed.
    The database decides who may change what (see supabase/003_shared_records.sql);
    if it refuses, the change is undone by reloading from the server. */
-const ARRAY_COLLECTIONS = ['issues', 'inventory', 'requests', 'transfers', 'matches', 'works', 'pitchCatalog', 'team', 'activity'];
+const ARRAY_COLLECTIONS = ['issues', 'inventory', 'requests', 'transfers', 'matches', 'works', 'pitchCatalog', 'team', 'activity', 'assets', 'pitchClay', 'pitchClayCentral', 'staff'];
 const MAP_COLLECTIONS = ['groundPhotos', 'pitches']; // objects keyed by venue id
 const sync = { snapshot: new Map(), queue: Promise.resolve(), busy: 0, lastLoad: 0, failed: false };
 
@@ -80,7 +80,11 @@ async function loadSharedData() {
 function refreshGroundStatus() {
   const open = new Set(openIssues().map(i => Number(i.ground)));
   const reported = new Set([...db.pitchCatalog.filter(p => p.reports?.length).map(p => Number(p.ground)), ...Object.keys(db.groundPhotos).map(Number)]);
-  for (const g of grounds) g.status = open.has(g.id) ? 'Needs attention' : reported.has(g.id) ? 'On track' : 'No report';
+  for (const g of grounds) {
+    g.status = open.has(g.id) ? 'Needs attention' : reported.has(g.id) ? 'On track' : 'No report';
+    const last = db.pitchCatalog.filter(p => Number(p.ground) === g.id).flatMap(p => p.reports || []).map(r => r.date || r.at || '').sort().pop();
+    g.updated = last ? fmtDay(String(last).slice(0, 10)) : 'No report yet';
+  }
 }
 
 /* Photos: any "data:image/…" text inside a record is uploaded and replaced by its web address */

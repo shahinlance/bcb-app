@@ -2,6 +2,7 @@
 
 Source: Google Drive folder **BCB Grounds data**, owned by the BCB data Google account.
 Folder ID `1z8snfRuAzhqOYhSvwsncAVd913cTGZYQ`. There is one subfolder per venue, each holding the filled form (`docs/forms/BCB-Grounds-Venue-Data-Form.xlsx`) and its photos.
+How: `scripts/import_venue.py` turns the workbook plus downloaded photos into records (`assets`, `pitchClay`, `staff`) and resized photos under `app/media/<code>/`, with random names that stay stable across re-imports. The records are upserted with SQL through the Supabase connector.
 Target: Supabase project `wwugezaqtlkhunpbxakg`, table `public.records`. Inventory goes in collection `inventory` and staff in `team`.
 
 ## Rules
@@ -27,3 +28,4 @@ Rented venues (09–22) have no folders yet.
 | Date | Venue | What was loaded | Notes |
 |---|---|---|---|
 | 2026-11-20 | — | Folders set up, all empty | — |
+| 2026-11-21 | 02 Chattogram | 36 assets, 1 Pitch Clay, 25 grounds team, 9 office team, 92 photos | Photos in `app/media/ctg/`. Open sheet issues: clay 2600−2600≠150; #19 no group; #24 no photo; 5 confirmation-before-joining dates; Office #9 NID 12 digits; same mobile for GT #12/#19 |

@@ -66,18 +66,16 @@ function summaryMetric(value, label, symbol, options = {}) {
   return `<${tag} class="summary-metric summary-metric--${tone}" style="--metric-number-size:${size}" ${tag === 'button' ? `type="button" aria-label="${esc(value)} ${esc(label)}"` : ''} ${options.attributes || ''}><span class="summary-metric-symbol">${summaryMetricIcon(symbol)}</span><span class="summary-metric-copy"><strong class="summary-metric-number">${esc(value)}</strong><span class="summary-metric-label">${esc(label)}</span></span></${tag}>`;
 }
 function clientHomeTools() {
-  const teamCount = teamMembers.length;
-  const lowStock = db.inventory.filter(a => a.qty < a.min).length;
+  const assetPic = db.assets.find(a => a.photos?.length)?.photos[0], staffPic = db.staff.find(p => p.photo)?.photo;
+  const repair = db.assets.filter(a => assetCondTone(a.condition) === 'coral').length;
+  const card = (go, label, pic, fallback, ic, title, sub) => `<button class="client-tool-card" data-go="${go}" aria-label="${label}">
+      <div class="client-tool-photo"><img src="${esc(pic || fallback)}" alt="" decoding="async">${pic ? '' : '<span class="client-tool-reference">Demo reference</span>'}</div>
+      <div class="client-tool-info"><div class="client-tool-title">${icon(ic)}<strong>${title}</strong>${icon('arrow')}</div><small>${sub}</small></div>
+    </button>`;
   return `<div class="client-tools" aria-label="Ground management shortcuts" aria-roledescription="carousel">
-    <button class="client-tool-card" data-go="inventory" aria-label="Inventory: equipment and supplies">
-      <div class="client-tool-photo"><img src="assets/machine-roller.jpg" alt="Cricket pitch roller on grass" decoding="async"><span class="client-tool-reference">Demo reference</span></div>
-      <div class="client-tool-info"><div class="client-tool-title">${icon('box')}<strong>Inventory</strong>${icon('arrow')}</div><small>${inventoryGroups(db.inventory).length} item types${lowStock ? ' · ' + lowStock + ' low stock' : ' · All grounds'}</small></div>
-    </button>
-    <button class="client-tool-card" data-go="team" aria-label="Grounds Team directory">
-      <div class="client-tool-photo team-photo"><img src="assets/machine-mower.jpg" alt="A groundskeeper maintaining a cricket outfield" decoding="async"><span class="client-tool-reference">Demo reference</span></div>
-      <div class="client-tool-info"><div class="client-tool-title">${icon('team')}<strong>Grounds team</strong>${icon('arrow')}</div><small>${teamCount} members · View team</small></div>
-    </button>
-  </div><div class="client-tool-pagination" aria-label="Choose a shortcut card"><button data-tool-slide="0" aria-label="Show Inventory card" aria-pressed="true"><i></i></button><button data-tool-slide="1" aria-label="Show Grounds team card" aria-pressed="false"><i></i></button></div>`;
+    ${card('assets', 'Assets and Pitch Clay', assetPic, 'assets/machine-roller.jpg', 'box', 'Assets', db.assets.length ? `${db.assets.length} items${repair ? ' · ' + repair + ' need repair' : ''}` : 'Pitch Clay · equipment')}
+    ${card('staff', 'Staff Members', staffPic, 'assets/machine-mower.jpg', 'team', 'Staff Members', db.staff.length ? `${db.staff.length} people · office & grounds` : 'Office & grounds teams')}
+  </div><div class="client-tool-pagination" aria-label="Choose a shortcut card"><button data-tool-slide="0" aria-label="Show Assets card" aria-pressed="true"><i></i></button><button data-tool-slide="1" aria-label="Show Staff card" aria-pressed="false"><i></i></button></div>`;
 }
 function clientHome() {
   const urgent = openIssues().filter(i => i.urgency === 'Urgent');
@@ -107,15 +105,19 @@ function clientContent() {
   if (state.screen === 'home') return clientHome();
   if (state.screen === 'settings') return clientAccount();
   if (state.screen === 'users') return usersAccessPage();
+  if (VENUE_DATA_SCREENS[state.screen]) return VENUE_DATA_SCREENS[state.screen]();
+  if (state.screen === 'ground-assets') return groundTabs('ground-assets') + assetsPage(true);
   if (['issues', 'work'].includes(state.screen)) return clientIssues();
   if (['inventory', 'requests', 'transfers'].includes(state.screen)) return clientInventory();
   return content();
 }
 function clientActiveTab() {
-  if (['ground-matches', 'ground-inventory'].includes(state.screen) || state.scope && ['matches', 'match', 'add-match', 'asset', 'stock'].includes(state.screen)) return 'home';
+  if (['ground-matches', 'ground-inventory', 'ground-assets'].includes(state.screen) || state.scope && ['matches', 'match', 'add-match', 'asset', 'stock'].includes(state.screen)) return 'home';
   if (['issues', 'issue-detail', 'report-issue', 'work', 'work-detail', 'assign', 'update-work', 'review'].includes(state.screen)) return 'issues';
   if (['inventory', 'inventory-group', 'asset', 'stock', 'requests', 'request-detail', 'new-request', 'transfers'].includes(state.screen)) return 'inventory';
   if (['team','team-group','employee-profile'].includes(state.screen)) return 'team';
+  if (['assets', 'asset-group', 'asset-item', 'clay'].includes(state.screen)) return 'assets';
+  if (['staff', 'staff-group', 'staff-profile'].includes(state.screen)) return 'staff';
   if (['matches', 'match', 'add-match'].includes(state.screen)) return 'matches';
   return 'home';
 }
@@ -136,7 +138,7 @@ function renderClient() {
   const tab = clientActiveTab();
   const pending = db.requests.some(r => r.status === 'Submitted');
   const reviews = db.works.some(w => w.status === 'Ready for review');
-  $('#app').innerHTML = `<main class="client-shell"><div class="phone client-phone" aria-label="BCB Grounds app"><div class="statusbar client-status"><span>9:41</span><i class="island"></i><div class="system-icons">${icon('signal')}${icon('wifi')}${icon('battery', 'battery')}</div></div><div class="appbody" id="client-scroll"><div class="phone-content client-content" data-screen="${state.screen}" data-root="${clientRoot()}">${clientContent()}</div></div><nav class="phone-footer" aria-label="Main navigation">${[['home', 'Home', 'home'], ['inventory', 'Inventory', 'box'], ['team', 'Grounds Team', 'team'], ['issues', 'Issues', 'alert'], ['matches', 'Matches', 'match']].map(([id, label, ic]) => `<button data-tab="${id}" class="${tab === id ? 'active' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${clientNavIcon(ic, tab === id)}<span>${label}</span>${(id === 'inventory' && pending || id === 'issues' && reviews) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}<div class="home-indicator"></div></nav></div></main>`;
+  $('#app').innerHTML = `<main class="client-shell"><div class="phone client-phone" aria-label="BCB Grounds app"><div class="statusbar client-status"><span>9:41</span><i class="island"></i><div class="system-icons">${icon('signal')}${icon('wifi')}${icon('battery', 'battery')}</div></div><div class="appbody" id="client-scroll"><div class="phone-content client-content" data-screen="${state.screen}" data-root="${clientRoot()}">${clientContent()}</div></div><nav class="phone-footer" aria-label="Main navigation">${[['home', 'Home', 'home'], ['assets', 'Assets', 'box'], ['staff', 'Staff', 'team'], ['issues', 'Issues', 'alert'], ['matches', 'Matches', 'match']].map(([id, label, ic]) => `<button data-tab="${id}" class="${tab === id ? 'active' : ''}" aria-current="${tab === id ? 'page' : 'false'}">${clientNavIcon(ic, tab === id)}<span>${label}</span>${(id === 'issues' && reviews) ? '<i class="tab-dot"></i>' : ''}</button>`).join('')}<div class="home-indicator"></div></nav></div></main>`;
   bindAppSearch(); bindClientTools();
   $('.appbody').scrollTop = clientScroll[clientViewKey()] || 0;
   document.title = 'BCB Grounds · ' + (state.screen === 'work' || state.screen === 'issues' ? 'Issues' : state.screen === 'requests' || state.screen === 'transfers' ? 'Inventory' : screenInfo()?.[1] || 'Super Admin');

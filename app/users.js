@@ -4,6 +4,7 @@
 const userAccess = { list: null, loading: false, error: '' };
 const ROLE_HELP = {
   visitor: 'Views everything, changes nothing.',
+  venue_viewer: 'Sees only their own venue, changes nothing.',
   admin: 'Adds and updates records at assigned venues only.',
   super_admin: 'Full access, including users and venue assignments.'
 };
@@ -31,7 +32,7 @@ function venueSummary(ids) {
 
 function userRow(u) {
   const me = u.id === BCB_USER?.id;
-  const sub = !u.is_active ? 'Not active · open to approve' : u.role === 'admin' ? venueSummary(u.venues) : ROLE_HELP[u.role];
+  const sub = !u.is_active ? 'Not active · open to approve' : ['admin', 'venue_viewer'].includes(u.role) ? venueSummary(u.venues) : ROLE_HELP[u.role];
   return `<button class="list-row user-row" data-user-edit="${u.id}"><div class="symbol ${u.is_active ? '' : 'amber'}">${icon(u.role === 'super_admin' ? 'shield' : 'user')}</div><div class="grow"><strong>${esc(u.full_name || u.email)}${me ? ' <span class="user-you">You</span>' : ''}</strong><small>${esc(u.full_name ? u.email : '')}</small><div class="chips" style="margin-top:7px">${chip(u.is_active ? ROLE_LABEL[u.role] : 'Not active', u.is_active ? '' : 'amber')}</div><small class="user-sub">${esc(sub)}</small></div>${icon('chevron', 'chev')}</button>`;
 }
 
@@ -46,7 +47,8 @@ function usersAccessPage() {
     ['Not active', L.filter(u => !u.is_active)],
     ['Super Admins', L.filter(u => u.is_active && u.role === 'super_admin')],
     ['Admins', L.filter(u => u.is_active && u.role === 'admin')],
-    ['Visitors', L.filter(u => u.is_active && u.role === 'visitor')]
+    ['Visitors', L.filter(u => u.is_active && u.role === 'visitor')],
+    ['Venue viewers', L.filter(u => u.is_active && u.role === 'venue_viewer')]
   ];
   return top + groupsOf.filter(([, us]) => us.length).map(([t, us]) => section(`${t} · ${us.length}`) + us.map(userRow).join('')).join('');
 }
@@ -65,7 +67,7 @@ function userEditor(id) {
       <label class="field">Full name<input name="name" value="${esc(u.full_name || '')}" maxlength="80" autocomplete="off"></label>
       <label class="field">Role<select name="role" ${me ? 'disabled' : ''}>${Object.entries(ROLE_LABEL).map(([k, t]) => `<option value="${k}" ${u.role === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
       <p class="account-form-help" data-role-help>${ROLE_HELP[u.role]}</p>
-      <div data-venue-picker ${u.role === 'admin' ? '' : 'hidden'}><p class="user-venue-title">Venues this Admin can update</p>${venueChecklist(u.venues)}</div>
+      <div data-venue-picker ${['admin', 'venue_viewer'].includes(u.role) ? '' : 'hidden'}><p class="user-venue-title" data-venue-title>${u.role === 'venue_viewer' ? 'Venue this person can see' : 'Venues this Admin can update'}</p>${venueChecklist(u.venues)}</div>
       <label class="check-row user-active"><input type="checkbox" name="active" ${u.is_active ? 'checked' : ''} ${me ? 'disabled' : ''}>Account active — can sign in and use the app</label>
       ${me ? '<p class="account-form-help">You can\'t change your own role or switch yourself off. Ask another Super Admin.</p>' : ''}
       <div class="form-error" role="alert"></div>
@@ -75,7 +77,8 @@ function userEditor(id) {
 
 document.addEventListener('change', e => {
   const form = e.target.closest('[data-users-form]'); if (!form || e.target.name !== 'role') return;
-  form.querySelector('[data-venue-picker]').hidden = e.target.value !== 'admin';
+  form.querySelector('[data-venue-picker]').hidden = !['admin', 'venue_viewer'].includes(e.target.value);
+  form.querySelector('[data-venue-title]').textContent = e.target.value === 'venue_viewer' ? 'Venue this person can see' : 'Venues this Admin can update';
   form.querySelector('[data-role-help]').textContent = ROLE_HELP[e.target.value];
 });
 
@@ -96,9 +99,9 @@ document.addEventListener('submit', async e => {
   const name = form.elements.name.value.trim().replace(/\s+/g, ' ');
   out.textContent = '';
   if (name && (name.length < 2 || name.length > 80)) { out.textContent = 'Enter a full name between 2 and 80 characters.'; return; }
-  if (role === 'admin' && active && !venues.length) { out.textContent = 'Choose at least one venue for this Admin.'; return; }
+  if (['admin', 'venue_viewer'].includes(role) && active && !venues.length) { out.textContent = role === 'admin' ? 'Choose at least one venue for this Admin.' : 'Choose the venue this person can see.'; return; }
   btn.disabled = true;
-  const { error } = await sb.rpc('admin_update_user', { target: id, new_role: role, new_active: active, new_name: name || null, venue_ids: role === 'admin' ? venues : [] });
+  const { error } = await sb.rpc('admin_update_user', { target: id, new_role: role, new_active: active, new_name: name || null, venue_ids: ['admin', 'venue_viewer'].includes(role) ? venues : [] });
   if (error) { out.textContent = authMessage(error); btn.disabled = false; return; }
   closeModal(); toast('Access saved');
   if (me && name) BCB_USER.name = name;
