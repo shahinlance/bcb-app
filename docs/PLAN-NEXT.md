@@ -3,6 +3,7 @@
 **Status: waiting.** Shahin is finishing the Chattogram folder (asset photos, a few corrections). Do not import or build until he says it is ready. Chattogram is the first venue to import.
 
 ## Source format (per venue folder on Drive)
+- **The Google Sheet columns are the final list of fields the app displays.** Show every column and add nothing extra. The only calculated field is Experience (see Staff). If the sheet's columns change, the app follows them.
 - One workbook per venue, with tabs **Pitch Clay**, **Inventory**, **Grounds Team** and **Office Team**. Row 1 is the header; data starts at row 2.
 - Photo subfolders: **Inventory**, **Grounds Team** and **Office Team**. Each photo file is named by the row's **Serial** (e.g. `16.webp`). Extra photos of the same item are named `16-2`, `16-3` …
 - Dates are day/month. If a date is ambiguous, check the neighbouring rows (a month cannot be greater than 12).
@@ -12,7 +13,7 @@
 - The asset page shows every sheet column. Assets with several photos get a swipeable carousel, and tapping a photo opens it full screen.
 - "Asset code / ID" is the store-entry team's fixed asset ID. Shahin hasn't decided whether to keep it. The app's own key is venue + Serial (e.g. CTG-007).
 
-## Pitch Clay (unit: **SQF**)
+## Pitch Clay (unit: **CFT**, cubic feet; corrected from SQF on 21 Nov)
 - Show it at the top of Assets, on each venue, and as a national card.
 - **National figures come from their own central data**: how much was distributed to grounds this year, and the current central stock. They are NOT a sum of venue figures, because some venues hold 2024–2025 stock.
 - Venue figures: present, the January 2026 / received amount, and usage per destination. Shahin is still deciding whether "January 2026 Quantity" means opening stock or received in 2026.
