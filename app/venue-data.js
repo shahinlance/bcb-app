@@ -46,7 +46,8 @@ function fieldValue(rec, label, value, type) {
 function fieldTable(rec, skip = []) {
   return `<dl class="data-fields">${(rec.fields || []).filter(([l]) => !skip.includes(l)).map(([label, value, type]) => {
     const shown = fieldValue(rec, label, value, type);
-    return `<div><dt>${esc(label)}</dt><dd class="${shown == null ? 'muted' : ''}">${shown == null ? 'Not provided' : (type === 'phone' || type === 'email' || /^experience|^confirmation/i.test(label) ? shown : shown)}</dd></div>`;
+    const note = /^notes?$/i.test(label) && shown != null ? (/repair|required|replace|damage|torn|broken|missing|not working/i.test(String(value)) ? 'note-alert' : 'note-ok') : '';
+    return `<div><dt>${esc(label)}</dt><dd class="${shown == null ? 'muted' : note}">${shown == null ? 'Not provided' : (type === 'phone' || type === 'email' || /^experience|^confirmation/i.test(label) ? shown : shown)}</dd></div>`;
   }).join('')}</dl>`;
 }
 
@@ -56,10 +57,32 @@ function photoCarousel(photos, alt) {
   return `<div class="data-carousel" data-carousel><div class="data-carousel-track" data-carousel-track>${photos.map((src, i) => `<button class="data-slide" data-photo-open="${i}" aria-label="Open photo ${i + 1} of ${photos.length}"><img src="${esc(src)}" alt="${esc(alt)} — photo ${i + 1}" loading="${i ? 'lazy' : 'eager'}" decoding="async"></button>`).join('')}</div>${photos.length > 1 ? `<div class="data-dots">${photos.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div><span class="data-count">1 / ${photos.length}</span>` : ''}</div>`;
 }
 function openPhotoViewer(photos, start, alt) {
-  showModal(`<div class="photo-viewer"><div class="data-carousel-track" data-carousel-track data-viewer-track>${photos.map((src, i) => `<div class="data-slide"><img src="${esc(src)}" alt="${esc(alt)} — photo ${i + 1}"></div>`).join('')}</div>${photos.length > 1 ? `<p class="photo-viewer-hint">Swipe for more · ${photos.length} photos</p>` : ''}</div>`);
-  const track = document.querySelector('[data-viewer-track]');
-  if (track) requestAnimationFrame(() => { track.scrollLeft = start * track.clientWidth; });
+  closePhotoViewer();
+  const v = document.createElement('div');
+  v.className = 'photo-viewer'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); v.setAttribute('aria-label', alt);
+  v.innerHTML = `<div class="photo-viewer-top"><span class="photo-viewer-count">${start + 1} / ${photos.length}</span><button class="photo-viewer-close" data-viewer-close aria-label="Close photo"><span aria-hidden="true" class="photo-viewer-x">✕</span><span>Close</span></button></div>
+    <div class="photo-viewer-track" data-viewer-track>${photos.map((src, i) => `<div class="photo-viewer-slide"><img src="${esc(src)}" alt="${esc(alt)} — photo ${i + 1}"></div>`).join('')}</div>
+    ${photos.length > 1 ? `<div class="photo-viewer-thumbs">${photos.map((src, i) => `<button data-viewer-thumb="${i}" class="${i === start ? 'on' : ''}" aria-label="Show photo ${i + 1}"><img src="${esc(src)}" alt=""></button>`).join('')}</div>` : ''}`;
+  document.body.appendChild(v); document.body.classList.add('viewer-open');
+  const track = v.querySelector('[data-viewer-track]');
+  const sync = () => { const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth)); v.querySelector('.photo-viewer-count').textContent = `${i + 1} / ${photos.length}`; v.querySelectorAll('[data-viewer-thumb]').forEach((t, k) => t.classList.toggle('on', k === i)); };
+  track.addEventListener('scroll', sync, { passive: true });
+  requestAnimationFrame(() => { track.scrollLeft = start * track.clientWidth; sync(); });
+  v.querySelector('[data-viewer-close]').focus();
 }
+function closePhotoViewer() { document.querySelector('.photo-viewer')?.remove(); document.body.classList.remove('viewer-open'); }
+document.addEventListener('keydown', e => {
+  const v = document.querySelector('.photo-viewer'); if (!v) return;
+  if (e.key === 'Escape') { e.stopImmediatePropagation(); closePhotoViewer(); }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const t = v.querySelector('[data-viewer-track]'); t.scrollBy({ left: (e.key === 'ArrowRight' ? 1 : -1) * t.clientWidth, behavior: 'smooth' }); }
+}, true);
+document.addEventListener('click', e => {
+  const v = document.querySelector('.photo-viewer'); if (!v || !v.contains(e.target)) return;
+  e.stopImmediatePropagation();
+  if (e.target.closest('[data-viewer-close]') || e.target === v || e.target.classList.contains('photo-viewer-slide')) { closePhotoViewer(); return; }
+  const th = e.target.closest('[data-viewer-thumb]');
+  if (th) { const t = v.querySelector('[data-viewer-track]'); t.scrollTo({ left: +th.dataset.viewerThumb * t.clientWidth, behavior: 'smooth' }); }
+}, true);
 document.addEventListener('scroll', e => {
   const t = e.target; if (!(t instanceof Element) || !t.matches('[data-carousel-track]')) return;
   const box = t.closest('[data-carousel]'); if (!box) return;
@@ -71,6 +94,7 @@ document.addEventListener('scroll', e => {
 /* ── Pitch Clay ────────────────────────────────────────────────────── */
 function clayUsed(rec) { return (rec.fields || []).filter(([l, v]) => /^(used in|given to)/i.test(l) && v != null && v !== '').reduce((s, [, v]) => s + Number(v || 0), 0); }
 function clayOpening(rec) { const f = (rec.fields || []).find(([l]) => /january|received/i.test(l)); return f && f[1] != null && f[1] !== '' ? Number(f[1]) : null; }
+function clayTone(pct) { return pct < 15 ? 'red' : pct < 35 ? 'orange' : pct < 60 ? 'yellow' : 'green'; }
 function clayNum(n) { return n == null ? '—' : Number(n).toLocaleString('en-GB'); }
 function venueClayCard(id, compact = false) {
   const rows = db.pitchClay.filter(r => Number(r.ground) === Number(id));
@@ -82,7 +106,7 @@ function venueClayCard(id, compact = false) {
   const tag = compact ? 'button' : 'section';
   return `<${tag} class="clay-card" ${compact ? `data-go="clay" data-clay-venue="${id}" aria-label="Pitch Clay at ${esc(venueName(id))}: ${clayNum(present)} ${CLAY_UNIT} in stock"` : ''}>${clayHead('Pitch Clay', venueName(id))}
     <div class="clay-figures"><div><strong>${clayNum(present)}</strong><span>${CLAY_UNIT} in stock now</span></div><div><strong>${clayNum(opening)}</strong><span>${esc(openLabel)}</span></div><div><strong>${clayNum(used)}</strong><span>${CLAY_UNIT} used / given</span></div></div>
-    ${opening ? `<div class="clay-bar" aria-label="${Math.round(used / opening * 100)}% used"><i style="width:${Math.min(100, used / opening * 100)}%"></i></div>` : ''}
+    ${opening ? (() => { const pct = Math.max(0, Math.min(100, present / opening * 100)); return `<div class="clay-bar" role="img" aria-label="${Math.round(pct)}% of stock left"><i class="clay-${clayTone(pct)}" style="width:${Math.max(pct, 2)}%"></i></div><p class="clay-left">${Math.round(pct)}% of ${esc(openLabel)} stock left</p>`; })() : ''}
     ${mismatch ? `<p class="clay-warn">${icon('alert')}Doesn't add up: ${clayNum(opening)} − ${clayNum(used)} = ${clayNum(expected)}, but stock shows ${clayNum(present)} ${CLAY_UNIT}.</p>` : ''}
     ${compact ? `<span class="clay-more">See details ${icon('chevron')}</span>` : rows.map(r => `<h4 class="clay-sub">${esc(r.color || 'Clay')}</h4>${fieldTable(r)}${r.photos?.length ? photoCarousel(r.photos, 'Pitch clay') : ''}`).join('')}
   </${tag}>`;
@@ -94,7 +118,7 @@ function nationalClayCard() {
   const max = Math.max(1, ...venues.map(x => x.rows.reduce((s, r) => s + Number(r.present || 0), 0)));
   return `<section class="clay-card clay-card--national">${clayHead('Pitch Clay · National', 'Central stock and distribution')}
     ${central ? `<div class="clay-figures">${(central.fields || []).slice(0, 3).map(([l, v]) => `<div><strong>${clayNum(v)}</strong><span>${esc(l)}</span></div>`).join('')}</div>${fieldTable(central)}` : `<p class="clay-pending">Central stock figures haven't been added yet.</p>`}
-    ${venues.length ? `<h4 class="clay-sub">Stock at venues now (${CLAY_UNIT})</h4><div class="clay-venues">${venues.map(({ g, rows }) => { const p = rows.reduce((s, r) => s + Number(r.present || 0), 0); return `<button class="clay-venue" data-go="clay" data-clay-venue="${g.id}"><span>${esc(g.short)}</span><i style="width:${p / max * 100}%"></i><strong>${clayNum(p)}</strong></button>`; }).join('')}</div><p class="sub">Venue figures are each venue's own stock (some include 2024–2025 clay), so they are not added to the national total.</p>` : ''}
+    ${venues.length ? `<h4 class="clay-sub">Stock at venues now (${CLAY_UNIT})</h4><div class="clay-venues">${venues.map(({ g, rows }) => { const p = rows.reduce((s, r) => s + Number(r.present || 0), 0), o = rows.reduce((s, r) => s + (clayOpening(r) || 0), 0), pct = o ? p / o * 100 : 100; return `<button class="clay-venue" data-go="clay" data-clay-venue="${g.id}"><span>${esc(g.short)}</span><i class="clay-${clayTone(pct)}" style="width:${Math.max(p / max * 100, 2)}%"></i><strong>${clayNum(p)}</strong></button>`; }).join('')}</div><p class="sub">Venue figures are each venue's own stock (some include 2024–2025 clay), so they are not added to the national total.</p>` : ''}
   </section>`;
 }
 function clayPage() {
@@ -104,10 +128,12 @@ function clayPage() {
 
 /* ── Assets ────────────────────────────────────────────────────────── */
 function assetCondTone(c) { return /needs repair|replace|repair needed|out of/i.test(c || '') ? 'coral' : /maint/i.test(c || '') ? 'amber' : ''; }
+function assetChipTone(c) { const t = assetCondTone(c); return t === 'coral' ? 'red' : t === 'amber' ? 'amber' : /operational|available|good/i.test(c || '') ? 'green' : ''; }
 function assetGroupsFor(list) {
   const map = new Map();
   for (const a of list) { const k = a.group || 'Other'; if (!map.has(k)) map.set(k, []); map.get(k).push(a); }
-  return [...map.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const first = items => Math.min(...items.map(a => Number(a.serial) || 9999));
+  return [...map.entries()].sort((a, b) => first(a[1]) - first(b[1]) || a[0].localeCompare(b[0]));
 }
 function assetsPage(embedded = false) {
   const venue = embedded ? state.ground : scopedVenue();
@@ -116,32 +142,42 @@ function assetsPage(embedded = false) {
   const clay = venue === 'all' ? (visibleVenues().length === 1 ? venueClayCard(visibleVenues()[0].id, true) : nationalClayCard()) : venueClayCard(venue, true);
   const top = embedded ? '' : header('Assets', venue === 'all' ? 'All venues' : venueName(venue)) + venuePicker('assets');
   if (!list.length) return top + clay + empty('No assets yet', venue === 'all' ? 'Venue asset lists will appear here once imported.' : 'This venue\'s asset list hasn\'t been imported yet.');
-  return top + clay + `<div class="summary-metrics">${summaryMetric(list.length, 'Asset items', 'box')}${summaryMetric(assetGroupsFor(list).length, 'Groups', 'box')}${summaryMetric(repair, 'Needs repair', 'alert')}</div>` +
+  const repairList = list.filter(a => assetCondTone(a.condition) === 'coral').sort((a, b) => Number(a.ground) - Number(b.ground) || a.serial - b.serial);
+  return top + clay + `<div class="summary-metrics">${summaryMetric(list.length, 'Asset items', 'box')}${summaryMetric(assetGroupsFor(list).length, 'Groups', 'box')}${summaryMetric(repair, 'Needs repair', 'alert', { tag: 'button', attributes: `data-repair-toggle aria-expanded="${!!state.assetRepairOpen}"` })}</div>` +
+    (state.assetRepairOpen && repairList.length ? `<section class="repair-list" aria-label="Items that need repair">${section(`Needs repair · ${repairList.length}`)}${repairList.map(a => assetRow(a, venue)).join('')}</section>` : '') +
     section('Asset groups') + `<div class="data-group-grid">${assetGroupsFor(list).map(([name, items]) => {
       const pic = items.find(a => a.photos?.length)?.photos[0], bad = items.filter(a => assetCondTone(a.condition) === 'coral').length;
       return `<button class="data-group" data-go="asset-group" data-asset-group="${esc(name)}" data-asset-venue="${venue}"><span class="data-group-pic">${pic ? `<img src="${esc(pic)}" alt="" loading="lazy">` : icon('box')}</span><strong>${esc(name)}</strong><small>${items.length} item${items.length === 1 ? '' : 's'}${bad ? ` · <b class="coral-text">${bad} need repair</b>` : ''}</small></button>`;
     }).join('')}</div>`;
 }
+function assetRow(a, venue) {
+  return `<button class="list-row data-row" data-go="asset-item" data-asset-id="${esc(a.id)}"><span class="data-thumb">${a.photos?.length ? `<img src="${esc(a.photos[0])}" alt="" loading="lazy">` : icon('box')}</span><div class="grow"><strong>${esc(a.name)}</strong><small>${esc([a.qty != null ? `${clayNum(a.qty)} ${a.unit || ''}`.trim() : '', venue === 'all' ? venueName(a.ground) : '', a.brand].filter(Boolean).join(' · '))}</small>${a.condition ? `<div class="chips" style="margin-top:6px">${chip(a.condition, assetChipTone(a.condition))}</div>` : ''}${noteLine(a)}</div>${icon('chevron', 'chev')}</button>`;
+}
+function noteLine(a) { const n = (a.fields || []).find(([l]) => /^notes?$/i.test(l))?.[1]; return n ? `<small class="${/repair|required|replace|damage|torn|broken|missing|not working/i.test(n) ? 'note-alert' : 'note-ok'}">${esc(n)}</small>` : ''; }
+function venueRepairIssues(id) {
+  const list = db.assets.filter(a => Number(a.ground) === Number(id) && assetCondTone(a.condition) === 'coral').sort((a, b) => a.serial - b.serial);
+  if (!db.assets.some(a => Number(a.ground) === Number(id))) return '';
+  return section(`Needs repair · ${list.length}`) + (list.length ? list.map(a => assetRow(a, id)).join('') : '<p class="sub">No equipment needs repair at this venue.</p>');
+}
 function assetGroupPage() {
   const venue = state.assetVenue ?? scopedVenue(), name = state.assetGroup;
   const items = db.assets.filter(a => inScope(a, venue) && (a.group || 'Other') === name).sort((a, b) => Number(a.ground) - Number(b.ground) || a.serial - b.serial);
-  return header(name, `${items.length} item${items.length === 1 ? '' : 's'} · ${venue === 'all' ? 'All venues' : venueName(venue)}`) + (items.length ? items.map(a =>
-    `<button class="list-row data-row" data-go="asset-item" data-asset-id="${esc(a.id)}"><span class="data-thumb">${a.photos?.length ? `<img src="${esc(a.photos[0])}" alt="" loading="lazy">` : icon('box')}</span><div class="grow"><strong>${esc(a.name)}</strong><small>${esc([a.qty != null ? `${clayNum(a.qty)} ${a.unit || ''}`.trim() : '', venue === 'all' ? venueName(a.ground) : '', a.brand].filter(Boolean).join(' · '))}</small>${a.condition ? `<div class="chips" style="margin-top:6px">${chip(a.condition, assetCondTone(a.condition))}</div>` : ''}</div>${icon('chevron', 'chev')}</button>`).join('') : empty('Nothing here', 'No items in this group.'));
+  return header(name, `${items.length} item${items.length === 1 ? '' : 's'} · ${venue === 'all' ? 'All venues' : venueName(venue)}`) + (items.length ? items.map(a => assetRow(a, venue)).join('') : empty('Nothing here', 'No items in this group.'));
 }
 function assetItemPage() {
   const a = db.assets.find(x => x.id === state.assetId);
   if (!a) return header('Asset') + empty('Not found', 'This item may have been removed.');
   return header(a.name, `${venueName(a.ground)} · ${esc(a.group || 'Other')}`) + photoCarousel(a.photos, a.name) +
-    `<div class="data-badges">${a.condition ? chip(a.condition, assetCondTone(a.condition)) : ''}${a.qty != null ? chip(`${clayNum(a.qty)} ${a.unit || ''}`.trim()) : ''}<span class="data-id">ID ${esc(a.id)}</span></div>` +
+    `<div class="data-badges">${a.condition ? chip(a.condition, assetChipTone(a.condition)) : ''}${a.qty != null ? chip(`${clayNum(a.qty)} ${a.unit || ''}`.trim()) : ''}<span class="data-id">ID ${esc(a.id)}</span></div>` +
     section('Details') + fieldTable(a);
 }
 
 /* ── Staff Members ─────────────────────────────────────────────────── */
 function staffInitials(n) { return String(n || '?').replace(/^(md\.?|mohammad)\s+/i, '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join(''); }
 function staffAvatar(p, cls = '') { return p.photo ? `<img class="staff-avatar ${cls}" src="${esc(p.photo)}" alt="${esc(p.name)}" loading="lazy">` : `<span class="staff-avatar staff-avatar--initials ${cls}" aria-hidden="true">${esc(staffInitials(p.name))}</span>`; }
-function staffPage() {
-  const venue = scopedVenue(), list = db.staff.filter(p => inScope(p, venue));
-  const top = header('Staff Members', venue === 'all' ? 'All venues' : venueName(venue)) + venuePicker('staff');
+function staffPage(embedded = false) {
+  const venue = embedded ? state.ground : scopedVenue(), list = db.staff.filter(p => inScope(p, venue));
+  const top = embedded ? '' : header('Staff Members', venue === 'all' ? 'All venues' : venueName(venue)) + venuePicker('staff');
   if (!list.length) return top + empty('No staff yet', 'Staff lists will appear here once each venue\'s sheet is imported.');
   return top + `<div class="summary-metrics">${summaryMetric(list.length, 'Staff', 'team')}${STAFF_TEAMS.map(t => summaryMetric(list.filter(p => p.team === t).length, t, 'team')).join('')}</div>` +
     STAFF_TEAMS.map(t => { const ps = list.filter(p => p.team === t); return `<button class="data-team" data-go="staff-group" data-staff-team="${t}" data-staff-venue="${venue}"><div class="data-team-faces">${ps.slice(0, 5).map(p => staffAvatar(p)).join('')}</div><div class="grow"><strong>${t}</strong><small>${ps.length} member${ps.length === 1 ? '' : 's'}${venue === 'all' ? ` · ${new Set(ps.map(p => p.ground)).size} venue(s)` : ''}</small></div>${icon('chevron', 'chev')}</button>`; }).join('');
@@ -178,6 +214,8 @@ document.addEventListener('click', e => {
     const imgs = [...el.closest('[data-carousel]').querySelectorAll('img')].map(i => i.getAttribute('src'));
     openPhotoViewer(imgs, +el.dataset.photoOpen, el.querySelector('img')?.alt || 'Photo'); return;
   }
+  const rt = e.target.closest('[data-repair-toggle]');
+  if (rt) { e.stopImmediatePropagation(); state.assetRepairOpen = !state.assetRepairOpen; render(); if (state.assetRepairOpen) requestAnimationFrame(() => document.querySelector('.repair-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })); return; }
   const b = e.target.closest('[data-go]'); if (!b) return;
   const d = b.dataset, patch = {};
   if (d.assetGroup !== undefined) { patch.assetGroup = d.assetGroup; patch.assetVenue = d.assetVenue === 'all' ? 'all' : Number(d.assetVenue); }
@@ -186,6 +224,7 @@ document.addEventListener('click', e => {
   if (d.staffId) patch.staffId = d.staffId;
   if (d.clayVenue) patch.clayVenue = Number(d.clayVenue);
   if (d.dataVenue) patch.dataVenue = Number(d.dataVenue);
+  if (d.repairOpen) patch.assetRepairOpen = true;
   if (Object.keys(patch).length) Object.assign(state, patch);
 }, true);
 document.addEventListener('change', e => {

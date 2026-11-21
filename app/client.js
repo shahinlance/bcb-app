@@ -85,7 +85,7 @@ function clientHome() {
   return `<div class="client-brand-row"><div class="app-brand"><img class="bcb-logo" src="assets/bcb-logo.png" alt="Bangladesh Cricket Board logo"><span>BCB Grounds</span></div><div class="client-top-buttons"><button class="icon-btn" data-go="alerts" aria-label="Notifications">${icon('bell')}${!db.notificationsRead && accountNotificationCount() ? '<i class="notice-dot"></i>' : ''}</button><button class="client-avatar account-home-avatar" data-go="settings" aria-label="Your profile">${accountAvatar()}</button></div></div>
   <h1 class="app-title">Good Morning<br>${esc(accountProfile().fullName||'Welcome')}</h1><p class="app-subtitle">Every ground. A clearer picture.</p>
   ${urgent.length ? `<button class="client-attention" data-go="issues" data-issue-filter-priority="Urgent" aria-label="${attention} grounds need attention · ${urgent.length} urgent issues">${clientAttentionPhotos(urgent)}<span><strong>${attention} grounds need attention</strong><small>${urgent.length} urgent issues to look into</small></span>${icon('chevron')}</button>` : `<div class="client-attention calm"><span class="attention-symbol">${icon('check')}</span><span><strong>Grounds are on track</strong><small>No urgent issue reported</small></span></div>`}
-  <div class="summary-metrics summary-metrics--home">${summaryMetric(grounds.length, 'Venues', 'ground')}${summaryMetric(openIssues().length, 'Open issues', 'alert')}${summaryMetric(pending.length, 'To approve', 'request', {tag:'button',attributes:'data-go="requests"'})}</div>
+  <div class="summary-metrics summary-metrics--home">${summaryMetric(grounds.length, 'Venues', 'ground')}${summaryMetric(openIssues().length, 'Open issues', 'alert')}${summaryMetric(db.assets.filter(a => assetCondTone(a.condition) === 'coral').length, 'Needs repair', 'alert', {tag:'button',attributes:'data-go="assets" data-repair-open="1"'})}</div>
   ${clientHomeTools()}${section('Your grounds', 'See all', 'grounds')}<p class="ground-directory-caption">8 BCB grounds · 14 rented venues · Priority order</p><div class="filters">${['All grounds', 'Needs attention', 'On track'].map(x => `<button class="filter ${state.filter === x ? 'active' : ''}" data-home-filter="${x}">${x}</button>`).join('')}</div>
   ${grounds.filter(g => state.filter === 'All grounds' || state.filter === 'Needs attention' && openIssues().some(i => i.ground === g.id) || state.filter === 'On track' && !openIssues().some(i => i.ground === g.id) && g.id !== 6 && g.status !== 'No report').map(groundCard).join('')}`;
 }
@@ -106,13 +106,14 @@ function clientContent() {
   if (state.screen === 'settings') return clientAccount();
   if (state.screen === 'users') return usersAccessPage();
   if (VENUE_DATA_SCREENS[state.screen]) return VENUE_DATA_SCREENS[state.screen]();
-  if (state.screen === 'ground-assets') return groundTabs('ground-assets') + assetsPage(true);
+  if (state.screen === 'ground-assets') return header(G(state.ground).short, esc(G(state.ground).name), 'Grounds') + groundTabs('ground-assets') + assetsPage(true);
+  if (state.screen === 'ground-staff') return header(G(state.ground).short, esc(G(state.ground).name), 'Grounds') + groundTabs('ground-staff') + staffPage(true);
   if (['issues', 'work'].includes(state.screen)) return clientIssues();
   if (['inventory', 'requests', 'transfers'].includes(state.screen)) return clientInventory();
   return content();
 }
 function clientActiveTab() {
-  if (['ground-matches', 'ground-inventory', 'ground-assets'].includes(state.screen) || state.scope && ['matches', 'match', 'add-match', 'asset', 'stock'].includes(state.screen)) return 'home';
+  if (['ground-matches', 'ground-inventory', 'ground-assets', 'ground-staff'].includes(state.screen) || state.scope && ['matches', 'match', 'add-match', 'asset', 'stock'].includes(state.screen)) return 'home';
   if (['issues', 'issue-detail', 'report-issue', 'work', 'work-detail', 'assign', 'update-work', 'review'].includes(state.screen)) return 'issues';
   if (['inventory', 'inventory-group', 'asset', 'stock', 'requests', 'request-detail', 'new-request', 'transfers'].includes(state.screen)) return 'inventory';
   if (['team','team-group','employee-profile'].includes(state.screen)) return 'team';

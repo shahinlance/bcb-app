@@ -13,7 +13,7 @@ button.clay-card{cursor:pointer}
 .clay-figures strong{display:block;font-size:20px;letter-spacing:-.5px}
 .clay-figures span{display:block;font-size:11px;color:var(--muted);line-height:1.3;margin-top:2px}
 .clay-bar{height:8px;border-radius:8px;background:#e9dcc6;margin:12px 0 4px;overflow:hidden}
-.clay-bar i{display:block;height:100%;background:#8a5a2b;border-radius:8px}
+.clay-bar i{display:block;height:100%;background:#1f9d5c;border-radius:8px}
 .clay-warn{display:flex;gap:8px;align-items:flex-start;background:#fff1ee;color:#a2392a;border-radius:12px;padding:9px 11px;font-size:13px;margin:10px 0 0}
 .clay-warn svg{width:16px;height:16px;flex:none;margin-top:1px}
 .clay-more{display:flex;align-items:center;gap:4px;justify-content:flex-end;color:var(--green);font-weight:600;font-size:13px;margin-top:10px}
@@ -46,9 +46,22 @@ button.clay-card{cursor:pointer}
 .data-dots i{width:7px;height:7px;border-radius:50%;background:#ffffff80}
 .data-dots i.on{background:#fff;width:18px;border-radius:6px}
 .data-count{position:absolute;top:10px;right:10px;background:#00000080;color:#fff;font-size:12px;border-radius:10px;padding:2px 8px}
-.photo-viewer .data-carousel-track{background:#000;border-radius:14px}
-.photo-viewer .data-slide{aspect-ratio:auto;height:70vh}
-.photo-viewer-hint{text-align:center;color:var(--muted);font-size:12px;margin:8px 0 0}
+/* Full-screen photo viewer: close button always visible */
+body.viewer-open{overflow:hidden}
+.photo-viewer{position:fixed;inset:0;z-index:1000;background:#0b0f0d;display:flex;flex-direction:column;padding:max(10px,env(safe-area-inset-top)) 0 max(12px,env(safe-area-inset-bottom))}
+.photo-viewer-top{display:flex;align-items:center;justify-content:space-between;padding:6px 14px 10px;color:#fff}
+.photo-viewer-count{font-size:14px;opacity:.85}
+.photo-viewer-close{display:inline-flex;align-items:center;gap:6px;background:#ffffff22;color:#fff;border:1px solid #ffffff40;border-radius:999px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.photo-viewer-close:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.photo-viewer-x{font-size:16px;line-height:1}
+.photo-viewer-track{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.photo-viewer-track::-webkit-scrollbar{display:none}
+.photo-viewer-slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:0 10px;min-height:0}
+.photo-viewer-slide img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px}
+.photo-viewer-thumbs{display:flex;gap:8px;justify-content:center;padding:12px 12px 0;overflow-x:auto}
+.photo-viewer-thumbs button{flex:none;width:56px;height:56px;border-radius:10px;overflow:hidden;border:2px solid transparent;padding:0;opacity:.55;background:#222;cursor:pointer}
+.photo-viewer-thumbs button.on{border-color:#fff;opacity:1}
+.photo-viewer-thumbs img{width:100%;height:100%;object-fit:cover}
 .data-badges{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 6px}
 .data-id{font-size:12px;color:var(--muted);margin-left:auto}
 .data-fields{margin:0 0 24px;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
@@ -77,3 +90,24 @@ button.clay-card{cursor:pointer}
 .muted{color:var(--muted)}
 .venue-data-summary{margin:20px 0}
 .data-venue-links .list-row small{display:block}
+
+/* Notes highlight */
+.data-fields dd.note-ok,.data-row small.note-ok{color:#0a7a4b}
+.data-fields dd.note-alert,.data-row small.note-alert{color:#d9631e;font-weight:700}
+.data-row small.note-ok,.data-row small.note-alert{display:block;margin-top:6px;font-size:12px}
+/* Clay stock colours */
+.clay-bar i.clay-red,.clay-venue i.clay-red{background:#d6453d}
+.clay-bar i.clay-orange,.clay-venue i.clay-orange{background:#ee8a2a}
+.clay-bar i.clay-yellow,.clay-venue i.clay-yellow{background:#e5c02b}
+.clay-bar i.clay-green,.clay-venue i.clay-green{background:#1f9d5c}
+.clay-left{font-size:12px;color:var(--muted);margin:4px 0 0}
+/* Needs-repair list */
+.repair-list{margin:-4px 0 18px}
+button.summary-metric[data-repair-toggle]{cursor:pointer}
+button.summary-metric[data-repair-toggle][aria-expanded="true"]{outline:2px solid #e9a99f}
+/* Venue section tabs */
+.venue-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 18px}
+.venue-tabs button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:16px;border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;font-weight:600;font-size:13px;box-shadow:0 2px 8px #1b3b2a0d;cursor:pointer}
+.venue-tabs button svg{width:22px;height:22px;color:var(--green)}
+.venue-tabs button.active{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 6px 16px #08674733}
+.venue-tabs button.active svg{color:#fff}
